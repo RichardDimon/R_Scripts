@@ -165,7 +165,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
         
         pmac <- gt_to_pop_minor_allele_counts(gt_sw_comp_sites, updatedpopsforallelecount)
         
-        opt_results   <- optimize_single_objective( gt=pmac$MAC, N_t=N_t, initial_weights=initial_wts, weights_max=max_wts, 
+        opt_results   <- optimize_single_objective( gt=pmac$MAC, N_t=N_t, initial_weights=initial_weights, weights_max=max_wts, 
                                                        measure=measure, max_steps=max_steps, max_t=max_t,
                                                        m=m, p_depends_delta=TRUE, 
                                                        pMAC_mode=TRUE, Nmat=pmac$N, ncpu=1, unlim_m = TRUE)
