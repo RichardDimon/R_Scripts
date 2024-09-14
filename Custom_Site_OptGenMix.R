@@ -7,7 +7,9 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
                                   threshold_maf=threshold_maf){
 
-  
+
+  library(ggplot)
+  library(ggnewscale)
   #remove any sites that have less than 5 samples
   sites_high_missing_samples_removed <- table(dms$meta$analyses[,site_col_name])
   not_n5_sites <- as.vector(names(which(sites_high_missing_samples_removed<samplethreshold)))
