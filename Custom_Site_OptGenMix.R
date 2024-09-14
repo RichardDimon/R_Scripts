@@ -8,7 +8,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   threshold_maf=threshold_maf){
 
 
-  library(ggplot)
+  library(ggplot2)
   library(ggnewscale)
   #remove any sites that have less than 5 samples
   sites_high_missing_samples_removed <- table(dms$meta$analyses[,site_col_name])
