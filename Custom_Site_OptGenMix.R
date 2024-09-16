@@ -99,7 +99,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
   
   
-  #OK ready to optimise based off the randomisation!
+#OK ready to optimise based off the randomisation!
   
   #optimsie using equal sample numbers based on what was the desired number per site from above
   #then when calcualting the range of alleles captured for each site combination afetr the optimsieation, use all the idnividuals found at a site.
@@ -127,20 +127,9 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   max_wts <- rep(1, length(unique(pops)))
   dmssites <- remove.by.list(dms, sampstokeepz)
   dms <- dmssites
-  #now subsample any sites with more than n samples to nmake optimsiation equal
-
-    samples_df <- dmssites$meta$analyses %>% as.data.frame() %>%
-      group_by(!!sym(site_col_name)) %>% slice_sample(n = sampspersite)
-    dmssites <- remove.by.list(dmssites,samples_df$sample)
-  #dmssites is now thew dms with equal samples
-  #dms is now all sites above the threshold, but with unequal samples if theres more samples than the threshodl at a site
-  
-  gt_sw_comp_sites <- dmssites$gt
-  updatedpopsforallelecount <- dmssites$meta$analyses[,site_col_name]
-  
-  
   
 
+ 
   for (o in 1:length(measurevals)){
     measure <- measurevals[o]
     ulimM <- unlimited_mvals[o]
@@ -162,6 +151,15 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
         # weights_min <- rep(0, length(unique(pops)))
         # weights_min <-replace(weights_min,samples_to_force,1)
       }
+      
+      
+      #now sub sample any sites with more than n samples to nmake optimsiation equal
+      samples_df <- dmssites$meta$analyses %>% as.data.frame() %>%
+        group_by(!!sym(site_col_name)) %>% slice_sample(n = sampspersite)
+      dmssites_temp <- remove.by.list(dmssites,samples_df$sample) #dmssites_temp is now thew dms with equal samples
+      gt_sw_comp_sites <- dmssites_temp$gt
+      updatedpopsforallelecount <- dmssites_temp$meta$analyses[,site_col_name]
+      
       
       if (measure=="psfs"){ 
         
@@ -198,6 +196,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     
   }
   
+
   
   
 #based on the optimised solution table generated above, calcualte the alelles captured from randomly sampling x samples per site.
