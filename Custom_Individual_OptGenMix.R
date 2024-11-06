@@ -232,7 +232,7 @@ ggplot()+
   theme_minimal()+
   ylab("Frequency")+
   scale_x_continuous("minor_allele_counts", labels = as.character(CAC$minor_allele_counts), breaks = CAC$minor_allele_counts)+
-  ggtitle(paste0("Super Common Alleles - common allele count of common alleles \nNumber of common alleles (MAF5%): ", ncol(commonALinSamps), "\n", "% of CA found in less than 10% of select samples: ", round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%"))
+  ggtitle(paste0("Super Common Alleles - common allele count of common alleles \nNumber of common alleles (MAF5%): ", ncol(commonALinSamps), "\n", "# of CA found in less than 10% of select samples: ", length(which(CAC$propindv<0.10)), " (",round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%)"))
 
 ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(which(sol_vec>0)), " Optimsised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
 
