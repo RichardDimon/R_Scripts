@@ -219,6 +219,27 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       
       # 2. find allele prop using common_alleles
       sol_vec <- sw_out_list[[i]]$d_opt$weight[max_steps,]
+
+
+#plot Super Common Allele frequency for each optimsied sample      
+AllelesInSamps <- gt_sw_comp[which(sol_vec>0),]
+commonALinSampsnum <- which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_common_5pecent)))
+commonALinSamps <- AllelesInSamps[,commonALinSampsnum]
+CAC <- data.frame(common_allele_count(commonALinSamps))
+CAC$propindv <- CAC$minor_allele_counts/length(which(sol_vec>0))
+ggplot()+
+  geom_bar(data=CAC, aes(x= minor_allele_counts))+
+  theme_minimal()+
+  ylab("Frequency")+
+  scale_x_continuous("minor_allele_counts", labels = as.character(CAC$minor_allele_counts), breaks = CAC$minor_allele_counts)+
+  ggtitle(paste0("Super Common Alleles (SCA) - common allele count of common alleles (MAF5%) \nNumber of SCA: ", ncol(commonALinSamps), "\n", "% of SCA found in only 10% of samples: ", round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%"))
+
+ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(which(sol_vec>0)), " Optimsised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
+
+
+
+
+      
       common_alleles  <- common_allele_count(gt_sw_comp, sol_vec) #returns: number_common_alleles=number_common_alleles, minor_allele_counts=minor_allele_counts  #common_alleles[[2]]: minor allele count is greater than zero and alleles with a minimum allele freq greater than  0.03 #ie, this asks, which loci were common (> 0.02) in the whole population, and are also represented by two alleles in the proposed conservation population...
       out_alleles[i,1] <- i
       out_alleles[i,2] <- length(intersect(which(common_alleles[[2]] > 0), i_sw_common))
