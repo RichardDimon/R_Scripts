@@ -223,7 +223,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
 
 #plot Super Common Allele frequency for each optimsied sample      
 AllelesInSamps <- gt_sw_comp[which(sol_vec>0),]
-commonALinSampsnum <- which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_common_5pecent)))
+commonALinSampsnum <- which(colnames(AllelesInSamps)%in%rownames(data.frame(i_sw_common_5pecent)))
 commonALinSamps <- AllelesInSamps[,commonALinSampsnum]
 CAC <- data.frame(common_allele_count(commonALinSamps))
 CAC$propindv <- CAC$minor_allele_counts/length(which(sol_vec>0))
@@ -232,7 +232,7 @@ ggplot()+
   theme_minimal()+
   ylab("Frequency")+
   scale_x_continuous("minor_allele_counts", labels = as.character(CAC$minor_allele_counts), breaks = CAC$minor_allele_counts)+
-  ggtitle(paste0("Super Common Alleles (SCA) - common allele count of common alleles (MAF5%) \nNumber of SCA: ", ncol(commonALinSamps), "\n", "% of SCA found in only 10% of samples: ", round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%"))
+  ggtitle(paste0("Super Common Alleles - common allele count of common alleles \nNumber of common alleles (MAF5%): ", ncol(commonALinSamps), "\n", "% of CA found in less than 10% of select samples: ", round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%"))
 
 ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(which(sol_vec>0)), " Optimsised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
 
