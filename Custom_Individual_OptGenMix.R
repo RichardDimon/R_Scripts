@@ -101,7 +101,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   ggsave(paste0("1. ",species, site_col_name,"_Individual_Randomisation_Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   ggplot()+  
-    geom_line(data=allvals2max, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
+    geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
     ylim(minval,maxval)+
     theme_minimal()+ 
     geom_hline(yintercept = 0.9, linetype="dashed", alpha=0.5, colour="red")+
