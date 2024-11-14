@@ -114,7 +114,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   # scale_colour_manual(name = "Measure", values = rainbow(length(unique(Optvals$m)))) +   
   # scale_shape_manual(name = "Measure", values = shapeslist[1:length(unique(Optvals$measure))]) 
   
-  ggsave(paste0("2. ",species, site_col_name,"_Individual_Maximum_AlleleProp_Capture_from_Randomisation_Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("2. ",species, site_col_name,"_Individual_Mininmmum_AlleleProp_Capture_from_Randomisation_Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
   
