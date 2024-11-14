@@ -46,10 +46,10 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
   findata_common_and_rare <- rbind(findata, findata_rare)
   
-  allvals2maxsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.max(Allele )))
+  allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
  
   #idenify how many samples to optimsie for in downstream analyses:
-  auto_nt <- allvals2maxsite[which(allvals2maxsite$Group=="2% MAF" & allvals2maxsite$Group2=="Common" & allvals2maxsite$Allele>0.9),] # find the sample combo where the max random allele prop for 2&MAF reaches over 90% common alleles
+  auto_nt <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
   auto_nt <- data.frame(auto_nt[order(auto_nt$n_sites_sel),])
   auto_nt_sites <- as.numeric(as.character(auto_nt$n_sites_sel))[1]
   auto_nt_totalsamps <- as.numeric(as.character(auto_nt$t_num_indv ))[1]
@@ -76,7 +76,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   ggsave(paste0("1. ",species, site_col_name,"_Site_Randomisation_Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   ggplot() +
-    geom_line(data=allvals2maxsite, aes(x=interaction(n_sites_sel,t_num_indv),y=Allele, group=interaction(Group, Group2), colour=interaction(Group, Group2)))+
+    geom_line(data=allvals2minsite, aes(x=interaction(n_sites_sel,t_num_indv),y=Allele, group=interaction(Group, Group2), colour=interaction(Group, Group2)))+
     scale_x_discrete(labels= unique(paste0(findata_common_and_rare$t_num_indv," individuals\n(", findata_common_and_rare$indv_p_site," from ",findata_common_and_rare$n_sites_sel," sites)")))+
     theme_bw()+
     labs(fill= "Common Vs Rare", title=paste0(species," sampling strategy"), 
@@ -91,7 +91,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
           legend.title = element_blank(),
           legend.background = element_rect(fill=alpha("grey", 0.2)))
   
-  ggsave(paste0("2. ",species, site_col_name,"_Site_Randomisation_Maximum_line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("2. ",species, site_col_name,"_Site_Randomisation_Minimum_line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
   
