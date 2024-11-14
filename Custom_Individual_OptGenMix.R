@@ -71,12 +71,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   allvals2 <- data.frame(allvals2)
   colnames(allvals2) <- c("MAF","nt","prop")
   
-  allvals2max <- data.frame(allvals2 %>% group_by(MAF, nt) %>% slice(which.max(prop)))
-  colnames(allvals2max) <- c("MAF","nt","minprop")
-  
+  allvals2min <- data.frame(allvals2 %>% group_by(MAF, nt) %>% slice(which.min(prop)))
+  colnames(allvals2min) <- c("MAF","nt","minprop")
   
   #idenify how many samples to optimsie for in downstream analyses:
-  auto_nt <- allvals2max[which(allvals2max$MAF=="3. 2% Common" & allvals2max$minprop>0.9),] # find the sample combo where the max random allele prop for 2&MAF reaches over 90% common alleles
+  auto_nt <- allvals2min[which(allvals2min$MAF=="2. 5% Common" & allvals2min$minprop>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
   auto_nt <- data.frame(auto_nt[order(auto_nt$nt),])
   auto_nt <- as.numeric(as.character(auto_nt$nt))[1]
   
