@@ -42,12 +42,21 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       ivals_common_2pecent[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common_2pecent))
       ivals_rare_2pecent[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_rare_2pecent))
     }
-    allvals_common[,i] <- ivals_common/length(i_sw_common)
-    allvals_rare[,i] <- ivals_rare/length(i_sw_rare)
-    allvals_common_5pecent[,i] <- ivals_common_5pecent/length(i_sw_common_5pecent)
-    allvals_rare_5pecent[,i] <- ivals_rare_5pecent/length(i_sw_rare_5pecent)
-    allvals_common_2pecent[,i] <- ivals_common_2pecent/length(i_sw_common_2pecent)
-    allvals_rare_2pecent[,i] <- ivals_rare_2pecent/length(i_sw_rare_2pecent)
+      if (length(N_t_vec)>1){
+      allvals_common[,i] <- ivals_common/length(i_sw_common)
+      allvals_rare[,i] <- ivals_rare/length(i_sw_rare)
+      allvals_common_5pecent[,i] <- ivals_common_5pecent/length(i_sw_common_5pecent)
+      allvals_rare_5pecent[,i] <- ivals_rare_5pecent/length(i_sw_rare_5pecent)
+      allvals_common_2pecent[,i] <- ivals_common_2pecent/length(i_sw_common_2pecent)
+      allvals_rare_2pecent[,i] <- ivals_rare_2pecent/length(i_sw_rare_2pecent)
+      } else {
+        allvals_common <- ivals_common/length(i_sw_common)
+        allvals_rare <- ivals_rare/length(i_sw_rare)
+        allvals_common_5pecent <- ivals_common_5pecent/length(i_sw_common_5pecent)
+        allvals_rare_5pecent <- ivals_rare_5pecent/length(i_sw_rare_5pecent)
+        allvals_common_2pecent <- ivals_common_2pecent/length(i_sw_common_2pecent)
+        allvals_rare_2pecent <- ivals_rare_2pecent/length(i_sw_rare_2pecent)
+        }
   }
   
   allvals_common <- data.frame(allvals_common)
