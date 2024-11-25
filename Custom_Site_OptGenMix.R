@@ -5,7 +5,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                   i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
-                                  threshold_maf=threshold_maf){
+                                  threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite){
 
 
   library(ggplot2)
@@ -48,12 +48,6 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
   allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
  
-  #idenify how many samples to optimsie for in downstream analyses:
-  auto_nt <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
-  auto_nt <- data.frame(auto_nt[order(auto_nt$n_sites_sel),])
-  auto_nt_sites <- as.numeric(as.character(auto_nt$n_sites_sel))[1]
-  auto_nt_totalsamps <- as.numeric(as.character(auto_nt$t_num_indv ))[1]
-  
     #plot Common and Rare
   ggplot() +
     geom_violin(data=findata_common_and_rare, aes(x=interaction(n_sites_sel,t_num_indv),y=Allele, colour=interaction(Group,Group2)),
@@ -104,13 +98,24 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   #optimsie using equal sample numbers based on what was the desired number per site from above
   #then when calcualting the range of alleles captured for each site combination afetr the optimsieation, use all the idnividuals found at a site.
   #this way, you are optimsiing using equal sample numebrs, but then calcualting total allele capture using all samples
+
   
-  N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
-  totalsamps <- auto_nt_totalsamps
-  sampspersite <- totalsamps/auto_nt_sites
-  
-  
-  
+  #idenify how many samples to optimsie for in downstream analyses:
+
+  if (auto_nt){
+    auto_nt <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
+    auto_nt <- data.frame(auto_nt[order(auto_nt$n_sites_sel),])
+    auto_nt_sites <- as.numeric(as.character(auto_nt$n_sites_sel))[1]
+    auto_nt_totalsamps <- as.numeric(as.character(auto_nt$t_num_indv ))[1]
+    N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
+    totalsamps <- auto_nt_totalsamps
+    sampspersite <- totalsamps/auto_nt_sites
+    } else {
+        N_t_vec=manual_sites, 
+        sampspersite <- manual_sampspersite
+      }
+    
+   
   
   poppys <- table(dms$meta$analyses[,site_col_name])
   
