@@ -5,7 +5,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                         i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                         i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
-                                        threshold_maf=threshold_maf){
+                                        threshold_maf=threshold_maf, auto_nt=auto_nt){
   
   
   
@@ -94,12 +94,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   allvals2min <- data.frame(allvals2 %>% group_by(MAF, nt) %>% slice(which.min(prop)))
   colnames(allvals2min) <- c("MAF","nt","minprop")
-  
-  #idenify how many samples to optimsie for in downstream analyses:
-  auto_nt <- allvals2min[which(allvals2min$MAF=="2. 5% Common" & allvals2min$minprop>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
-  auto_nt <- data.frame(auto_nt[order(auto_nt$nt),])
-  auto_nt <- as.numeric(as.character(auto_nt$nt))[1]
-  
+
+ 
   
   #plot
   minval <- min(c(min(allvals2$prop))) 
@@ -138,21 +134,20 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   ggsave(paste0("2. ",species, site_col_name,"_Individual_Mininmmum_AlleleProp_Capture_from_Randomisation_Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
-  
-  
-  
-  
-  
-  
-  
-  
+ 
   
   
   #OK ready to optimise based off the randomisation!
-  
-  
+    
+  #idenify how many samples to optimsie for in downstream analyses:
+ if (auto_nt){
+  auto_nt <- allvals2min[which(allvals2min$MAF=="2. 5% Common" & allvals2min$minprop>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
+  auto_nt <- data.frame(auto_nt[order(auto_nt$nt),])
+  auto_nt <- as.numeric(as.character(auto_nt$nt))[1]
   N_t_vec <- c(auto_nt-4, auto_nt-2, auto_nt, auto_nt+2, auto_nt+4) #we know this number from previously
-  
+ } else {
+   N_t_vec <- N_t_vec
+   }
   
   Optvals <- c() # create a new df variable for downstream analyses
 
@@ -181,11 +176,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
       
       if (!is.null(samples_to_force)){
-        maxws <- replace(max_wts,samples_to_force,0)
+        forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
+        maxws <- replace(max_wts,forcedsamps,0)
         initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
-        initial_weights[samples_to_force] <- 1
+        initial_weights[forcedsamps] <- 1
         weights_min <- rep(0, nrow(gt_sw_comp))
-        weights_min <-replace(weights_min,samples_to_force,1)
+        weights_min <-replace(weights_min,forcedsamps,1)
       }
       
       if (measure=="psfs"){ 
