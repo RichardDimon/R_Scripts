@@ -144,7 +144,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "Sites ...\n")
       
-      if (any(samples_to_force)){
+      if (!is.null(samples_to_force)){
         # maxws <- replace(max_wts,samples_to_force,0)
         # initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
         # initial_weights[samples_to_force] <- 1
