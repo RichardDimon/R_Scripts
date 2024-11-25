@@ -60,17 +60,29 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   }
   
   allvals_common <- data.frame(allvals_common)
-  allvals_rare <- data.frame(allvals_rare)
+  colnames(allvals_common)[1] <- "X1"
   allvals_common$MAF <- paste0("1. ", threshold_maf," Common")
+  
+  allvals_rare <- data.frame(allvals_rare)
+  colnames(allvals_rare)[1] <- "X1"
   allvals_rare$MAF <- paste0("4. ", threshold_maf," Rare")
+  
   allvals_common_5pecent <- data.frame(allvals_common_5pecent)
-  allvals_rare_5pecent <- data.frame(allvals_rare_5pecent)
+  colnames(allvals_common_5pecent)[1] <- "X1"
   allvals_common_5pecent$MAF <- "2. 5% Common"
+  
+  allvals_rare_5pecent <- data.frame(allvals_rare_5pecent)
+  colnames(allvals_rare_5pecent)[1] <- "X1"
   allvals_rare_5pecent$MAF <- "5. 5% Rare"
+  
   allvals_common_2pecent <- data.frame(allvals_common_2pecent)
-  allvals_rare_2pecent <- data.frame(allvals_rare_2pecent)
+  colnames(allvals_common_2pecent)[1] <- "X1"
   allvals_common_2pecent$MAF <- "3. 2% Common"
+
+  allvals_rare_2pecent <- data.frame(allvals_rare_2pecent)
+  colnames(allvals_rare_2pecent)[1] <- "X1"
   allvals_rare_2pecent$MAF <- "6. 2% Rare"
+  
   allvals <- rbind(allvals_common, allvals_common_5pecent,  allvals_common_2pecent, allvals_rare, allvals_rare_5pecent, allvals_rare_2pecent)
   
   allvals <- data.frame(allvals)
