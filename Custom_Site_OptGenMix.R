@@ -1,7 +1,7 @@
 Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethreshold, sitethreshold=sitethreshold,
                                   dms=dms, gt_sw_comp=gt_sw_comp, max_t=max_t, N_t_vec=N_t_vec, mvalues=mvalues, ncpu=ncpu, 
                                   max_wts=max_wts, unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
-                                  samples_to_force=samples_to_force, initial_weights=initial_weights, weights_min=weights_min,
+                                  sites_to_force=sites_to_force, initial_weights=initial_weights, weights_min=weights_min,
                                   pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                   i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
@@ -149,13 +149,9 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "Sites ...\n")
       
-      if (!is.null(samples_to_force)){
-        # maxws <- replace(max_wts,samples_to_force,0)
-        # initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
-        # initial_weights[samples_to_force] <- 1
-        # weights_min <- rep(0, length(unique(pops)))
-        # weights_min <-replace(weights_min,samples_to_force,1)
-      }
+      
+      
+  
       
       
       #now sub sample any sites with more than n samples to nmake optimsiation equal
@@ -165,6 +161,20 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       gt_sw_comp_sites <- dmssites_temp$gt
       updatedpopsforallelecount <- dmssites_temp$meta$analyses[,site_col_name]
       
+
+      if (!is.null(sites_to_force)){
+        forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
+        maxws <- replace(max_wts,forcedsamps,0)
+        initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
+        initial_weights[forcedsamps] <- 1
+        weights_min <- rep(0, nrow(gt_sw_comp_sites))
+        weights_min <-replace(weights_min,forcedsamps,1)
+      }
+      
+
+
+
+
       
       if (measure=="psfs"){ 
         
