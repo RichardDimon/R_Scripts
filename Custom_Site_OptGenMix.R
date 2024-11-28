@@ -17,7 +17,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   not_n5_samples <- dms$sample_names[which(!(dms$meta$analyses[,site_col_name] %in% not_n5_sites))]
   dms <- remove.by.list(dms, not_n5_samples)
 
-  
+  if (auto_nt){
   ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
 
   cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", max_steps, " iterations")
@@ -106,7 +106,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
   #idenify how many samples to optimsie for in downstream analyses:
 
-  if (auto_nt){
+
     auto_nt <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
     auto_nt <- data.frame(auto_nt[order(auto_nt$n_sites_sel),])
     auto_nt_sites <- as.numeric(as.character(auto_nt$n_sites_sel))[1]
