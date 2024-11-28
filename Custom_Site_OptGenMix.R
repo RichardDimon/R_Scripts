@@ -1,11 +1,12 @@
 Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethreshold, sitethreshold=sitethreshold,
                                   dms=dms, gt_sw_comp=gt_sw_comp, max_t=max_t, mvalues=mvalues, ncpu=ncpu, 
-                                  max_wts=max_wts, unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
+                                  unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
                                   sites_to_force=sites_to_force, initial_weights=initial_weights, weights_min=weights_min,
                                   pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                   i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
-                                  threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite){
+                                  threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite,
+                                 sites_to_exclude=sites_to_exclude){
 
 
   library(ggplot2)
@@ -162,15 +163,32 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       updatedpopsforallelecount <- dmssites_temp$meta$analyses[,site_col_name]
       
 
-      if (!is.null(sites_to_force)){
-        forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
-        maxws <- replace(max_wts,forcedsamps,0)
-        initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
-        initial_weights[forcedsamps] <- 1
-        weights_min <- rep(0, nrow(gt_sw_comp_sites))
-        weights_min <-replace(weights_min,forcedsamps,1)
-      }
-      
+
+
+  #force or exclude any sites?
+      if (!is.null(sites_to_force)&&!is.null(sites_to_exclude)){
+            forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
+            excludesamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_exclude)
+            maxws <- replace(max_wts,forcedsamps,0)
+            maxws <- replace(maxws,excludesamps,0)
+            max_wts[excludesamps] <- 0
+            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
+            initial_weights[forcedsamps] <- 1
+            weights_min <- rep(0, nrow(gt_sw_comp_sites))
+            weights_min <-replace(weights_min,forcedsamps,1)
+      } else if (!is.null(sites_to_force)){
+            forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
+            maxws <- replace(max_wts,forcedsamps,0)
+            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
+            initial_weights[forcedsamps] <- 1
+            weights_min <- rep(0, nrow(gt_sw_comp_sites))
+            weights_min <-replace(weights_min,forcedsamps,1)
+      } else if (!is.null(sites_to_exclude)){
+            excludesamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_exclude)
+            max_wts[excludesamps] <- 0
+            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), N_t, w_max=max_wts)
+        } 
+
 
 
 
