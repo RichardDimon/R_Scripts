@@ -180,7 +180,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
         excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
         maxws <- replace(max_wts,forcedsamps,0)
-        maxws <- replace(max_wts,excludesamps,0)
+        maxws <- replace(maxws,excludesamps,0)
         max_wts[excludesamps] <- 0
         initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
         initial_weights[forcedsamps] <- 1
@@ -196,7 +196,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         } else if (!is.null(samples_to_exclude)){
                 excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
                 max_wts[excludesamps] <- 0
-                initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=max_wts)
+                initial_weights <- propose_initial_weights(nrow(gt_sw_comp), N_t, w_max=max_wts)
         } 
       
       if (measure=="psfs"){ 
