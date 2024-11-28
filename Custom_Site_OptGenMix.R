@@ -112,7 +112,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     totalsamps <- auto_nt_totalsamps
     sampspersite <- totalsamps/auto_nt_sites
     } else {
-        N_t_vec <- manual_sites, 
+        N_t_vec <- manual_sites 
         sampspersite <- manual_sampspersite
       }
     
