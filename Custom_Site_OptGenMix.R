@@ -288,28 +288,50 @@ if (any(sites_to_force%in%not_n5_sites)){
         ivals_common_2pecent2[v] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common_2pecent))
         ivals_rare_2pecent2[v] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_rare_2pecent))
       }
-      
-      allvals_common2[,z] <- ivals_common2/length(i_sw_common)
-      allvals_rare2[,z] <- ivals_rare2/length(i_sw_rare)
-      allvals_common_5pecent2[,z] <- ivals_common_5pecent2/length(i_sw_common_5pecent)
-      allvals_rare_5pecent2[,z] <- ivals_rare_5pecent2/length(i_sw_rare_5pecent)
-      allvals_common_2pecent2[,z] <- ivals_common_2pecent2/length(i_sw_common_2pecent)
-      allvals_rare_2pecent2[,z] <- ivals_rare_2pecent2/length(i_sw_rare_2pecent)
+
+        if (length(N_t_vec)>1){
+        allvals_common2[,z] <- ivals_common2/length(i_sw_common)
+        allvals_rare2[,z] <- ivals_rare2/length(i_sw_rare)
+        allvals_common_5pecent2[,z] <- ivals_common_5pecent2/length(i_sw_common_5pecent)
+        allvals_rare_5pecent2[,z] <- ivals_rare_5pecent2/length(i_sw_rare_5pecent)
+        allvals_common_2pecent2[,z] <- ivals_common_2pecent2/length(i_sw_common_2pecent)
+        allvals_rare_2pecent2[,z] <- ivals_rare_2pecent2/length(i_sw_rare_2pecent)
+      } else {
+        allvals_common2 <- ivals_common2/length(i_sw_common)
+        allvals_rare2 <- ivals_rare2/length(i_sw_rare)
+        allvals_common_5pecent2 <- ivals_common_5pecent2/length(i_sw_common_5pecent)
+        allvals_rare_5pecent2 <- ivals_rare_5pecent2/length(i_sw_rare_5pecent)
+        allvals_common_2pecent2 <- ivals_common_2pecent2/length(i_sw_common_2pecent)
+        allvals_rare_2pecent2 <- ivals_rare_2pecent2/length(i_sw_rare_2pecent)
+        }  
+
     }
     
     
     allvals_common2 <- data.frame(allvals_common2)
-    allvals_rare2 <- data.frame(allvals_rare2)
+    colnames(allvals_common2)[1] <- "X1"
     allvals_common2$MAF <- paste0("1. ", threshold_maf," Common")
+    
+    allvals_rare2 <- data.frame(allvals_rare2)
+    colnames(allvals_rare2)[1] <- "X1"
     allvals_rare2$MAF <- paste0("4. ", threshold_maf," Rare")
+    
     allvals_common_5pecent2 <- data.frame(allvals_common_5pecent2)
-    allvals_rare_5pecent2 <- data.frame(allvals_rare_5pecent2)
+    colnames(allvals_common_5pecent2)[1] <- "X1"
     allvals_common_5pecent2$MAF <- "2. 5% Common"
+    
+    allvals_rare_5pecent2 <- data.frame(allvals_rare_5pecent2)
+    colnames(allvals_rare_5pecent2)[1] <- "X1"
     allvals_rare_5pecent2$MAF <- "5. 5% Rare"
+    
     allvals_common_2pecent2 <- data.frame(allvals_common_2pecent2)
-    allvals_rare_2pecent2 <- data.frame(allvals_rare_2pecent2)
+    colnames(allvals_common_2pecent2)[1] <- "X1"
     allvals_common_2pecent2$MAF <- "3. 2% Common"
+  
+    allvals_rare_2pecent2 <- data.frame(allvals_rare_2pecent2)
+    colnames(allvals_rare_2pecent2)[1] <- "X1"
     allvals_rare_2pecent2$MAF <- "6. 2% Rare"
+  
     allvalsver2 <- rbind(allvals_common2, allvals_common_5pecent2,  allvals_common_2pecent2, allvals_rare2, allvals_rare_5pecent2, allvals_rare_2pecent2)
     
     allvalsver2 <- data.frame(allvalsver2)
