@@ -210,7 +210,7 @@ if (any(sites_to_force%in%not_n5_sites)){
           
           opt_results   <- optimize_single_objective( gt=pmac$MAC, N_t=N_t, initial_weights=initial_weights, weights_max=max_wts, 
                                                          measure=measure, max_steps=max_steps, max_t=max_t,
-                                                         m=m, p_depends_delta=TRUE, 
+                                                         m=m, p_depends_delta=TRUE, weights_min=weights_min,
                                                          pMAC_mode=TRUE, Nmat=pmac$N, ncpu=1, unlim_m = TRUE)
           
         } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
