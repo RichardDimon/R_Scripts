@@ -118,9 +118,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
         N_t_vec <- manual_sites 
         sampspersite <- manual_sampspersite
       }
-    
-   
-  
+     
   poppys <- table(dms$meta$analyses[,site_col_name])
   
   sampstokeepz <- dms$sample_names[which(dms$meta$analyses[,site_col_name] %in% names(which(poppys>=sampspersite)))]
@@ -132,13 +130,10 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   popslatlong$long[e] <-  mean(dms$meta$long[which(dms$meta$analyses[,site_col_name]==unique(pops)[e])])
   }
   popslatlong <- data.frame(popslatlong)
-  
-  max_wts <- rep(1, length(unique(pops)))
+   
   dmssites <- remove.by.list(dms, sampstokeepz)
   dms <- dmssites
-  
-
- 
+   
   for (o in 1:length(measurevals)){
     measure <- measurevals[o]
     ulimM <- unlimited_mvals[o]
@@ -152,21 +147,15 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     for ( i in 1:length(N_t_vec) ) {
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "Sites ...\n")
-      
-      
-      
-  
-      
-      
+              
       #now sub sample any sites with more than n samples to nmake optimsiation equal
       samples_df <- dmssites$meta$analyses %>% as.data.frame() %>%
         group_by(!!sym(site_col_name)) %>% slice_sample(n = sampspersite)
       dmssites_temp <- remove.by.list(dmssites,samples_df$sample) #dmssites_temp is now thew dms with equal samples
       gt_sw_comp_sites <- dmssites_temp$gt
       updatedpopsforallelecount <- dmssites_temp$meta$analyses[,site_col_name]
-      
-
-
+             
+      max_wts <- rep(1, length(unique(updatedpopsforallelecount)))
 
   #force or exclude any sites?
       if (!is.null(sites_to_force)&&!is.null(sites_to_exclude)){
