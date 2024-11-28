@@ -18,7 +18,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   dms <- remove.by.list(dms, not_n5_samples)
   
   cat("\n Removing the following sites as they don't meet the provided sample threshold of ", samplethreshold, " samples: \n")
-  cat("\n", not_n5_sites, "\n")
+  paste(not_n5_sites)
 
 if (any(sites_to_force%in%not_n5_sites)){
     cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
