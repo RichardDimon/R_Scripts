@@ -18,7 +18,10 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   dms <- remove.by.list(dms, not_n5_samples)
 
   
-  ##### 6. Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
+  ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
+
+  cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", max_steps, " iterations")
+  
   All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
   All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
   
