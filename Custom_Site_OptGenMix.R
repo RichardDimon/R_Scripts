@@ -355,69 +355,70 @@ if (any(sites_to_force%in%not_n5_sites)){
     write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured across optimsied site combinations.csv"),quote=FALSE)
     
     
-    
-    #now plot the variation compared to optimised sample combo - with 5% MAF
-    
-    GeneralSampComboCommonOnly <- allvalsver22[which(allvalsver22$MAF=="2. 5% Common"),]
-    
-    comparewithrandomCommon <- findata_common_and_rare[which(findata_common_and_rare$indv_p_site==sampspersite & 
-                                                                findata_common_and_rare$n_sites_sel==N_t_vec &
-                                                                findata_common_and_rare$Group=="5% MAF" &
-                                                                findata_common_and_rare$Group2=="Common"),]
-    
-  
-    minval <- min(c(min(GeneralSampComboCommonOnly$prop), min(comparewithrandomCommon$Allele))) # find he minimum value to constrain plot
-    maxval <- max(c(max(GeneralSampComboCommonOnly$prop), max(comparewithrandomCommon$Allele))) # find he minimum value to constrain plot
-    
-    ggplot() +  
-      geom_boxplot(data=comparewithrandomCommon, mapping = aes(x = factor(n_sites_sel), y = Allele, colour="random"), 
-                   fill=NA,size=2, position=position_dodge(width=0))+
-      scale_colour_manual(values="black")+
-      labs(x = "N Sites", y = "Allele Proportion", colour="Random Sites")+
-      new_scale_color()+
-      geom_boxplot(data=GeneralSampComboCommonOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
-                  fill=NA,size=2, position=position_dodge(width=0))+
-      scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboCommonOnly$nt))),1)))+
-      labs(x = "N Sites", y = "Allele Proportion", colour="Optimised Sites")+
-      ylim(minval,maxval)+
-      theme_minimal()+ 
-      ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
-      theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
-    
-    ggsave(paste0("4. ", species, site_col_name,"_Optmised_Site_Vs_Random_Site_sampling_Common_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
-    
-    
-    
-    #now plot the rare variation compared to optimised sample combo - with 5% MAF
-    
-    GeneralSampComboRareOnly <- allvalsver22[which(allvalsver22$MAF=="5. 5% Rare"),]
-    
-    comparewithrandomRare <- findata_common_and_rare[which(findata_common_and_rare$indv_p_site==sampspersite & 
-                                                               findata_common_and_rare$n_sites_sel==N_t_vec &
-                                                               findata_common_and_rare$Group=="5% MAF" &
-                                                               findata_common_and_rare$Group2=="rare"),]
-    
-    
-    minval <- min(c(min(GeneralSampComboRareOnly$prop), min(comparewithrandomRare$Allele))) # find he minimum value to constrain plot
-    maxval <- max(c(max(GeneralSampComboRareOnly$prop), max(comparewithrandomRare$Allele))) # find he minimum value to constrain plot
-    
-    ggplot() +  
-      geom_boxplot(data=comparewithrandomRare, mapping = aes(x = factor(n_sites_sel), y = Allele, colour="random"), 
-                   fill=NA,size=2, position=position_dodge(width=0))+
-      scale_colour_manual(values="black")+
-      labs(x = "N Sites", y = "Allele Proportion", colour="Random Sites")+
-      new_scale_color()+
-      geom_boxplot(data=GeneralSampComboRareOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
-                   fill=NA,size=2, position=position_dodge(width=0))+
-      scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboRareOnly$nt))),1)))+
-      labs(x = "N Sites", y = "Allele Proportion", colour="Optimised Sites")+
-      ylim(minval,maxval)+
-      theme_minimal()+ 
-      ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
-      theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
-    
-    ggsave(paste0("5. ", species, site_col_name,"_Optmised_Site_Vs_Random_Site_sampling_Rare_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
-    
+    if (auto_nt){
+      
+        #now plot the variation compared to optimised sample combo - with 5% MAF
+        
+        GeneralSampComboCommonOnly <- allvalsver22[which(allvalsver22$MAF=="2. 5% Common"),]
+        
+        comparewithrandomCommon <- findata_common_and_rare[which(findata_common_and_rare$indv_p_site==sampspersite & 
+                                                                    findata_common_and_rare$n_sites_sel==N_t_vec &
+                                                                    findata_common_and_rare$Group=="5% MAF" &
+                                                                    findata_common_and_rare$Group2=="Common"),]
+        
+      
+        minval <- min(c(min(GeneralSampComboCommonOnly$prop), min(comparewithrandomCommon$Allele))) # find he minimum value to constrain plot
+        maxval <- max(c(max(GeneralSampComboCommonOnly$prop), max(comparewithrandomCommon$Allele))) # find he minimum value to constrain plot
+        
+        ggplot() +  
+          geom_boxplot(data=comparewithrandomCommon, mapping = aes(x = factor(n_sites_sel), y = Allele, colour="random"), 
+                       fill=NA,size=2, position=position_dodge(width=0))+
+          scale_colour_manual(values="black")+
+          labs(x = "N Sites", y = "Allele Proportion", colour="Random Sites")+
+          new_scale_color()+
+          geom_boxplot(data=GeneralSampComboCommonOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
+                      fill=NA,size=2, position=position_dodge(width=0))+
+          scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboCommonOnly$nt))),1)))+
+          labs(x = "N Sites", y = "Allele Proportion", colour="Optimised Sites")+
+          ylim(minval,maxval)+
+          theme_minimal()+ 
+          ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
+          theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
+        
+        ggsave(paste0("4. ", species, site_col_name,"_Optmised_Site_Vs_Random_Site_sampling_Common_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+        
+        
+        
+        #now plot the rare variation compared to optimised sample combo - with 5% MAF
+        
+        GeneralSampComboRareOnly <- allvalsver22[which(allvalsver22$MAF=="5. 5% Rare"),]
+        
+        comparewithrandomRare <- findata_common_and_rare[which(findata_common_and_rare$indv_p_site==sampspersite & 
+                                                                   findata_common_and_rare$n_sites_sel==N_t_vec &
+                                                                   findata_common_and_rare$Group=="5% MAF" &
+                                                                   findata_common_and_rare$Group2=="rare"),]
+        
+        
+        minval <- min(c(min(GeneralSampComboRareOnly$prop), min(comparewithrandomRare$Allele))) # find he minimum value to constrain plot
+        maxval <- max(c(max(GeneralSampComboRareOnly$prop), max(comparewithrandomRare$Allele))) # find he minimum value to constrain plot
+        
+        ggplot() +  
+          geom_boxplot(data=comparewithrandomRare, mapping = aes(x = factor(n_sites_sel), y = Allele, colour="random"), 
+                       fill=NA,size=2, position=position_dodge(width=0))+
+          scale_colour_manual(values="black")+
+          labs(x = "N Sites", y = "Allele Proportion", colour="Random Sites")+
+          new_scale_color()+
+          geom_boxplot(data=GeneralSampComboRareOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
+                       fill=NA,size=2, position=position_dodge(width=0))+
+          scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboRareOnly$nt))),1)))+
+          labs(x = "N Sites", y = "Allele Proportion", colour="Optimised Sites")+
+          ylim(minval,maxval)+
+          theme_minimal()+ 
+          ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
+          theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
+        
+        ggsave(paste0("5. ", species, site_col_name,"_Optmised_Site_Vs_Random_Site_sampling_Rare_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+    }
     
   }
   
