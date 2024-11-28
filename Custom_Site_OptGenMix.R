@@ -129,6 +129,13 @@ if (any(sites_to_force%in%not_n5_sites)){
       N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
       totalsamps <- auto_nt_totalsamps
       sampspersite <- totalsamps/auto_nt_sites
+
+      if (any(!length(sites_to_force)<N_t_vec)){
+          cat("\n Awwwww, SNAP! you have too many sites to force for the auto_nt option! try using a manual number of sites")
+      } else if (any(!length(sites_to_exclude)<N_t_vec)){
+              cat("\n Awwwww, SNAP! you have too many sites to exclude for the auto_nt option! try using a manual number of sites")
+          } else{   
+      }
       } else {
           N_t_vec <- manual_sites 
           sampspersite <- manual_sampspersite
