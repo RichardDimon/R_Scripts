@@ -190,6 +190,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
           excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
           max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
           max_wts[excludesamps] <- 0
+          initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=max_wts)
         } 
       
       if (measure=="psfs"){ 
