@@ -176,7 +176,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
 
       #force or exclude any samples?
-      if (!is.null(samples_to_force)&&!is.null(samples_to_exclude){
+      if (!is.null(samples_to_force)&&!is.null(samples_to_exclude)){
         forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
         excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
         maxws <- replace(max_wts,forcedsamps,0)
