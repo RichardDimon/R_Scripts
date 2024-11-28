@@ -133,11 +133,17 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
    
   dmssites <- remove.by.list(dms, sampstokeepz)
   dms <- dmssites
+
+  #set m
+  if (mvalues=="auto"){
+    m <- length(unique(pops))
+    } else {
+    m <- mvalues
+    }
    
   for (o in 1:length(measurevals)){
     measure <- measurevals[o]
     ulimM <- unlimited_mvals[o]
-    m <- mvalues[o]
     allelescapturedfin <- c()
     set.seed(9825)
     sw_out_list <- list()
