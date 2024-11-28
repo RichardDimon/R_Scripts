@@ -35,15 +35,16 @@ if (any(sites_to_force%in%not_n5_sites)){
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
   
     cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", max_steps, " iterations")
+
+    RandomSiteIterations <- 1000 #don't need 10,000 loops fopr each site combo as it takes too long, 1000 is plenty for most analyses
+    All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
-    All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_rare_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
-    All5Sites_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_common_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_rare_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    
-    All5Sites_MAF2 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_common_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAF52 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=max_steps, i_sw_common=i_sw_rare_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_MAF2 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_rare_MAF52 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
     
     All5Sites_MAFSingle$Group <- "singleton MAF"
