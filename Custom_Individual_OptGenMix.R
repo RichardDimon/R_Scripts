@@ -175,22 +175,28 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
 
-      #force any samples?
-      if (!is.null(samples_to_force)){
+      #force or exclude any samples?
+      if (!is.null(samples_to_force)&&!is.null(samples_to_exclude){
         forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
+        excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
         maxws <- replace(max_wts,forcedsamps,0)
+        maxws <- replace(max_wts,excludesamps,0)
+        max_wts[excludesamps] <- 0
         initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
         initial_weights[forcedsamps] <- 1
         weights_min <- rep(0, nrow(gt_sw_comp))
         weights_min <-replace(weights_min,forcedsamps,1)
-      }
-
-      #exclude any samples?
-       if (!is.null(samples_to_exclude)){
-          excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
-          max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
-          max_wts[excludesamps] <- 0
-          initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=max_wts)
+        } else if (!is.null(samples_to_force)){
+                forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
+                maxws <- replace(max_wts,forcedsamps,0)
+                initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=maxws)
+                initial_weights[forcedsamps] <- 1
+                weights_min <- rep(0, nrow(gt_sw_comp))
+                weights_min <-replace(weights_min,forcedsamps,1)
+        } else if (!is.null(samples_to_exclude)){
+                excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
+                max_wts[excludesamps] <- 0
+                initial_weights <- propose_initial_weights(nrow(gt_sw_comp), (N_t-length(samples_to_force)), w_max=max_wts)
         } 
       
       if (measure=="psfs"){ 
