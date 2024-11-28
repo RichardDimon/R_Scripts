@@ -5,7 +5,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                         i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                         i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
-                                        threshold_maf=threshold_maf, auto_nt=auto_nt){
+                                        threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude){
   
   
   
@@ -174,7 +174,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     for ( i in 1:length(N_t_vec) ) {
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
-      
+
+      #force any samples?
       if (!is.null(samples_to_force)){
         forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
         maxws <- replace(max_wts,forcedsamps,0)
@@ -183,6 +184,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         weights_min <- rep(0, nrow(gt_sw_comp))
         weights_min <-replace(weights_min,forcedsamps,1)
       }
+
+      #exclude any samples?
+       if (!is.null(samples_to_exclude)){
+          excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
+          max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
+          max_wts[excludesamps] <- 0
+        } 
       
       if (measure=="psfs"){ 
         gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp) 
