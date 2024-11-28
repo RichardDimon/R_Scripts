@@ -148,9 +148,10 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
  } else {
    N_t_vec <- N_t_vec
    }
+
+  max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
   
   Optvals <- c() # create a new df variable for downstream analyses
-
   
   out_alleles <- mat.or.vec(length(N_t_vec),2)
   out_alleles_rare <- mat.or.vec(length(N_t_vec),2)
@@ -158,7 +159,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   out_alleles_rare_5pecent <- mat.or.vec(length(N_t_vec),2)
   out_alleles_2pecent <- mat.or.vec(length(N_t_vec),2)
   out_alleles_rare_2pecent <- mat.or.vec(length(N_t_vec),2)
-  
   
   allelescapturedfin2 <- c()
   for (o in 1:length(measurevals)){
