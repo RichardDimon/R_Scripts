@@ -170,29 +170,27 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
 
   #force or exclude any sites?
       if (!is.null(sites_to_force)&&!is.null(sites_to_exclude)){
-            forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
-            excludesamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_exclude)
+            forcedsamps <- which(unique(updatedpopsforallelecount)%in%sites_to_force)
+            excludesamps <- which(unique(updatedpopsforallelecount)%in%sites_to_exclude)
             maxws <- replace(max_wts,forcedsamps,0)
             maxws <- replace(maxws,excludesamps,0)
             max_wts[excludesamps] <- 0
-            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
+            initial_weights <- propose_initial_weights(length(unique(updatedpopsforallelecount)), (N_t-length(sites_to_force)), w_max=maxws)
             initial_weights[forcedsamps] <- 1
-            weights_min <- rep(0, nrow(gt_sw_comp_sites))
+            weights_min <- rep(0, length(unique(updatedpopsforallelecount)))
             weights_min <-replace(weights_min,forcedsamps,1)
-      } else if (!is.null(sites_to_force)){
-            forcedsamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_force)
+          } else if (!is.null(sites_to_force)){
+            forcedsamps <- which(unique(updatedpopsforallelecount)%in%sites_to_force)
             maxws <- replace(max_wts,forcedsamps,0)
-            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), (N_t-length(sites_to_force)), w_max=maxws)
+            initial_weights <- propose_initial_weights(length(unique(updatedpopsforallelecount)), (N_t-length(sites_to_force)), w_max=maxws)
             initial_weights[forcedsamps] <- 1
-            weights_min <- rep(0, nrow(gt_sw_comp_sites))
+            weights_min <- rep(0, length(unique(updatedpopsforallelecount)))
             weights_min <-replace(weights_min,forcedsamps,1)
-      } else if (!is.null(sites_to_exclude)){
-            excludesamps <- which(rownames(gt_sw_comp_sites)%in%sites_to_exclude)
+          } else if (!is.null(sites_to_exclude)){
+            excludesamps <- which(unique(updatedpopsforallelecount)%in%sites_to_exclude)
             max_wts[excludesamps] <- 0
-            initial_weights <- propose_initial_weights(nrow(gt_sw_comp_sites), N_t, w_max=max_wts)
-        } 
-
-
+            initial_weights <- propose_initial_weights(length(unique(updatedpopsforallelecount)), N_t, w_max=max_wts)
+          } 
 
 
 
