@@ -18,7 +18,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   dms <- remove.by.list(dms, not_n5_samples)
   
   cat("\n Removing the following sites as they don't meet the provided sample threshold of ", samplethreshold, " samples: \n")
-  print(table(dms$meta$analyses[,site_col_name][which((dms$meta$analyses[,site_col_name] %in% not_n5_sites))]))
+  print(table(dms$meta$analyses[,site_col_name][which(dms$meta$analyses[,site_col_name] %in% not_n5_sites)]))
   
   cat("\n The remaining sites for site optimsiation are: \n")
   print(table(dms$meta$analyses[,site_col_name]))
