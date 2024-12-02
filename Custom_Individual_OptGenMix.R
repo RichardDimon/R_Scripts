@@ -144,7 +144,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   auto_nt <- allvals2min[which(allvals2min$MAF=="2. 5% Common" & allvals2min$minprop>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
   auto_nt <- data.frame(auto_nt[order(auto_nt$nt),])
   auto_nt <- as.numeric(as.character(auto_nt$nt))[1]
-  N_t_vec <- c(auto_nt-4, auto_nt-2, auto_nt, auto_nt+2, auto_nt+4) #we know this number from previously
+  N_t_vec <- c(auto_nt-2, auto_nt, auto_nt+2) #we know this number from previously
  } else {
    N_t_vec <- N_t_vec
    }
