@@ -34,7 +34,7 @@ if (any(sites_to_force%in%not_n5_sites)){
     if (auto_nt){
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
 
-    RandomSiteIterations <- 1000 #don't need 10,000 loops fopr each site combo as it takes too long, 1000 is plenty for most analyses
+    RandomSiteIterations <- max_steps #may not need10,000 loops for each site combo as it takes too long, 1000 may be plenty for most analyses. if so change this here
     cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", RandomSiteIterations, " iterations")
 
     #All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
