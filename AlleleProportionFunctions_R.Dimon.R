@@ -33,7 +33,7 @@ Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, an
         sampling[nrow(sampling) + 1,] = list(c,ind,c*ind)
       }
     }
-    sampling <- sampling[which(sampling$samples==samplethreshold & sampling$sites<=sitethreshold | sampling$samples==(samplethreshold-1) & sampling$sites<=sitethreshold),]
+    sampling <- sampling[which(sampling$samples==samplethreshold & sampling$sites<=sitethreshold | sampling$samples==(samplethreshold-1) & sampling$sites<=sitethreshold | sampling$samples==(samplethreshold-2) & sampling$sites<=sitethreshold),]
     sampling<-sampling[order(sampling$total),]
     dms_meta <- cbind.data.frame(sample=dms$meta$sample_names, site=dms$meta$analyses[,analysis],lat=dms$meta$lat, long=dms$meta$long)
     colnames(dms_meta) <- c("sample","site","lat","long")
