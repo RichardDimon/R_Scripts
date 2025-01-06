@@ -37,32 +37,34 @@ if (any(sites_to_force%in%not_n5_sites)){
     RandomSiteIterations <- 1000 #don't need 10,000 loops fopr each site combo as it takes too long, 1000 is plenty for most analyses
     cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", RandomSiteIterations, " iterations")
 
-    All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    #All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    #All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
     All5Sites_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     All5Sites_rare_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
-    All5Sites_MAF2 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAF52 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    #All5Sites_MAF2 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    #All5Sites_rare_MAF52 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
     
-    All5Sites_MAFSingle$Group <- "singleton MAF"
+    #All5Sites_MAFSingle$Group <- "singleton MAF"
     All5Sites_MAF5$Group <- "5% MAF"
-    All5Sites_MAF2$Group <- "2% MAF"
-    All5Sites_MAFSingle$Group2 <- "Common"
+    #All5Sites_MAF2$Group <- "2% MAF"
+    #All5Sites_MAFSingle$Group2 <- "Common"
     All5Sites_MAF5$Group2 <- "Common"
-    All5Sites_MAF2$Group2 <- "Common"
-    findata <- rbind(All5Sites_MAFSingle, All5Sites_MAF5, All5Sites_MAF2)
-    
-    All5Sites_rare_MAFSingle$Group <- "singleton MAF"
+    #All5Sites_MAF2$Group2 <- "Common"
+    #findata <- rbind(All5Sites_MAFSingle, All5Sites_MAF5, All5Sites_MAF2)
+    findata <- All5Sites_MAF5
+      
+    #All5Sites_rare_MAFSingle$Group <- "singleton MAF"
     All5Sites_rare_MAF5$Group <- "5% MAF"
-    All5Sites_rare_MAF52$Group <- "2% MAF"
-    All5Sites_rare_MAFSingle$Group2 <- "rare"
+    #All5Sites_rare_MAF52$Group <- "2% MAF"
+    #All5Sites_rare_MAFSingle$Group2 <- "rare"
     All5Sites_rare_MAF5$Group2 <- "rare"
-    All5Sites_rare_MAF52$Group2 <- "rare"
-    findata_rare <- rbind(All5Sites_rare_MAFSingle, All5Sites_rare_MAF5, All5Sites_rare_MAF52)
-    
+    #All5Sites_rare_MAF52$Group2 <- "rare"
+    #findata_rare <- rbind(All5Sites_rare_MAFSingle, All5Sites_rare_MAF5, All5Sites_rare_MAF52)
+    findata_rare <- All5Sites_rare_MAF5
+      
     findata_common_and_rare <- rbind(findata, findata_rare)
     
     allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
