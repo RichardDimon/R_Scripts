@@ -179,11 +179,13 @@ if (any(sites_to_force%in%not_n5_sites)){
       par(mfrow = c(length(N_t_vec), 1))
       for ( i in 1:length(N_t_vec) ) {
         N_t <- N_t_vec[i]
-        cat("\n Running ", measure," for ", N_t, "Sites ...\n")
-                
+        sampspersitesingle <- sampspersite[i]
+        
+         cat("\n Running ", measure," for ", N_t, "Sites  and ",sampspersitesingle ," samps per site...\n")
+        
         #now sub sample any sites with more than n samples to nmake optimsiation equal
         samples_df <- dmssites$meta$analyses %>% as.data.frame() %>%
-          group_by(!!sym(site_col_name)) %>% slice_sample(n = sampspersite)
+        group_by(!!sym(site_col_name)) %>% slice_sample(n = sampspersitesingle)
         dmssites_temp <- remove.by.list(dmssites,samples_df$sample) #dmssites_temp is now thew dms with equal samples
         gt_sw_comp_sites <- dmssites_temp$gt
         updatedpopsforallelecount <- dmssites_temp$meta$analyses[,site_col_name]
@@ -283,7 +285,7 @@ if (any(sites_to_force%in%not_n5_sites)){
       
       for (g in 1:length(unique(nt_sites))){
         #SummaryTab$optsitesnsamps[g] <- length(which(solution_table$site==unique(nt_sites)[g] & solution_table[,z]>0)) #identify how many samples for each site 
-        SummaryTab$optsitesnsamps[g] <- sampspersite
+        SummaryTab$optsitesnsamps[g] <- sampspersite[z]
         }
       
       for (v in 1:max_steps){
