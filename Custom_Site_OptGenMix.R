@@ -66,9 +66,12 @@ if (any(sites_to_force%in%not_n5_sites)){
     findata_rare <- All5Sites_rare_MAF5
       
     findata_common_and_rare <- rbind(findata, findata_rare)
-    
+    write.table(findata_common_and_rare, paste0(OGM_dir, species,"_",site_col_name,"_BigDataRandomisations.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+      
     allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
-   
+
+
+      
       #plot Common and Rare
     ggplot() +
       geom_violin(data=findata_common_and_rare, aes(x=interaction(n_sites_sel,t_num_indv),y=Allele, colour=interaction(Group,Group2)),
@@ -365,7 +368,7 @@ if (any(sites_to_force%in%not_n5_sites)){
     write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured across optimsied site combinations.csv"),quote=FALSE)
     
     
-    if (auto_nt_sites){
+    if (auto_nt){
       
         #now plot the variation compared to optimised sample combo - with 5% MAF
         
