@@ -365,7 +365,7 @@ if (any(sites_to_force%in%not_n5_sites)){
     write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured across optimsied site combinations.csv"),quote=FALSE)
     
     
-    if (auto_nt){
+    if (auto_nt_sites){
       
         #now plot the variation compared to optimised sample combo - with 5% MAF
         
