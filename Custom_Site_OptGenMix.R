@@ -247,7 +247,7 @@ if (any(sites_to_force%in%not_n5_sites)){
       solution_table[,i+1] <- unique(pops)
       solution_table[,i+2] <- popslatlong$lat
       solution_table[,i+3] <- popslatlong$long
-      colnames(solution_table) <- c(N_t_vec, "site", "lat", "long")  #remember to give column names
+      colnames(solution_table) <- c(paste0(N_t_vec,"Si_", sampspersite,"SaSi"), "site", "lat", "long")  #remember to give column names
       write.table(solution_table, paste0(OGM_dir, species,"_",site_col_name,"_Site_Combinations_singleton=",threshold_maf, "_maxt=", max_t,"_",IncludeNA,measure,"m=",m,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
       
     }
