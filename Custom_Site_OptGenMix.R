@@ -124,10 +124,10 @@ if (any(sites_to_force%in%not_n5_sites)){
     #idenify how many samples to optimsie for in downstream analyses:
   
   
-      auto_nt <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
-      auto_nt <- data.frame(auto_nt[order(auto_nt$n_sites_sel),])
-      auto_nt_sites <- as.numeric(as.character(auto_nt$n_sites_sel))[1]
-      auto_nt_totalsamps <- as.numeric(as.character(auto_nt$t_num_indv ))[1]
+      auto_nts <- allvals2minsite[which(allvals2minsite$Group=="5% MAF" & allvals2minsite$Group2=="Common" & allvals2minsite$Allele>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
+      auto_nts <- data.frame(auto_nts[order(auto_nts$n_sites_sel),])
+      auto_nt_sites <- as.numeric(as.character(auto_nts$n_sites_sel))[1]
+      auto_nt_totalsamps <- as.numeric(as.character(auto_nts$t_num_indv ))[1]
       N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
       totalsamps <- auto_nt_totalsamps
       sampspersite <- totalsamps/auto_nt_sites
