@@ -83,14 +83,18 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   colnames(allvals_rare_2pecent)[1] <- "X1"
   allvals_rare_2pecent$MAF <- "6. 2% Rare"
   
-  allvals <- rbind(allvals_common, allvals_common_5pecent,  allvals_common_2pecent, allvals_rare, allvals_rare_5pecent, allvals_rare_2pecent)
-  
+  #allvals <- rbind(allvals_common, allvals_common_5pecent,  allvals_common_2pecent, allvals_rare, allvals_rare_5pecent, allvals_rare_2pecent)
+  allvals <- rbind(allvals_common_5pecent, allvals_rare_5pecent)
+    
   allvals <- data.frame(allvals)
   colnames(allvals) <- c(N_t_vec, "MAF")
   
   allvals2 <- melt(allvals, "MAF")
   allvals2 <- data.frame(allvals2)
   colnames(allvals2) <- c("MAF","nt","prop")
+
+  write.table(allvals2, paste0(OGM_dir, "BIGDATA_Randomised_Individuals_", species,"_",site_col_name,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+
   
   allvals2min <- data.frame(allvals2 %>% group_by(MAF, nt) %>% slice(which.min(prop)))
   colnames(allvals2min) <- c("MAF","nt","minprop")
