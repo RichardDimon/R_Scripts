@@ -25,13 +25,13 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
 if (any(sites_to_force%in%not_n5_sites)){
     cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
-  } else{
+  } else {
 
     if (any(sites_to_exclude%in%not_n5_sites)){
       cat("NOTE: some of the sites you have provided in your site exclude list have been removed! consider changing this list")
     } 
 
-    if (auto_nt){
+    if (auto_nt) {
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
 
     RandomSiteIterations <- max_steps #may not need10,000 loops for each site combo as it takes too long, 1000 may be plenty for most analyses. if so change this here
@@ -139,7 +139,7 @@ if (any(sites_to_force%in%not_n5_sites)){
           cat("\n Awwwww, SNAP! you have too many sites to force for the auto_nt option! try using a manual number of sites")
       } else if (any(!length(sites_to_exclude)<N_t_vec)){
               cat("\n Awwwww, SNAP! you have too many sites to exclude for the auto_nt option! try using a manual number of sites")
-          } else{   
+          } else {   
       }
       } else {
           N_t_vec <- manual_sites 
