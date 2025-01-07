@@ -66,7 +66,7 @@ if (any(sites_to_force%in%not_n5_sites)){
     findata_rare <- All5Sites_rare_MAF5
       
     findata_common_and_rare <- rbind(findata, findata_rare)
-    write.table(findata_common_and_rare, paste0(OGM_dir, "BIGDATA_Randomised_Sites"_", species,"_",site_col_name,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+    write.table(findata_common_and_rare, paste0(OGM_dir, "BIGDATA_Randomised_Sites_", species,"_",site_col_name,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
       
     allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
 
