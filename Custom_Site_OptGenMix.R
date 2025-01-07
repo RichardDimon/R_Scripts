@@ -238,7 +238,7 @@ if (any(sites_to_force%in%not_n5_sites)){
         tiff(paste0(OGM_dir_temp ,N_t,"sites ", sampspersitesingle, "sampspersite ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
            units = "in", width = 16, height = 10, res = 100)
         par(mfrow = c(1, 1))
-        plot(sw_out_list[[i]]$d_opt$value, main= paste0(site_col_name, " T_max = ", max_t," ",N_t, "samps ", IncludeNA, measure)) 
+        plot(sw_out_list[[i]]$d_opt$value, main= paste0(N_t, "sites ", sampspersitesingle, "sampspersite T_max = ", max_t," ", IncludeNA, " ", measure)) 
         dev.off()
       }
       
