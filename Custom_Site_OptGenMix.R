@@ -66,7 +66,7 @@ if (any(sites_to_force%in%not_n5_sites)){
     findata_rare <- All5Sites_rare_MAF5
       
     findata_common_and_rare <- rbind(findata, findata_rare)
-    write.table(findata_common_and_rare, paste0(OGM_dir, species,"_",site_col_name,"_BigDataRandomisations.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+    write.table(findata_common_and_rare, paste0(OGM_dir, "BIGDATA_Randomised_Sites"_", species,"_",site_col_name,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
       
     allvals2minsite <- data.frame(findata_common_and_rare %>% group_by(t_num_indv , n_sites_sel, Group, Group2) %>% slice(which.min(Allele )))
 
@@ -323,52 +323,57 @@ if (any(sites_to_force%in%not_n5_sites)){
     }
     
     
-    allvals_common2 <- data.frame(allvals_common2)
-    colnames(allvals_common2)[1] <- "X1"
-    allvals_common2$MAF <- paste0("1. ", threshold_maf," Common")
-    
-    allvals_rare2 <- data.frame(allvals_rare2)
-    colnames(allvals_rare2)[1] <- "X1"
-    allvals_rare2$MAF <- paste0("4. ", threshold_maf," Rare")
-    
-    allvals_common_5pecent2 <- data.frame(allvals_common_5pecent2)
-    colnames(allvals_common_5pecent2)[1] <- "X1"
-    allvals_common_5pecent2$MAF <- "2. 5% Common"
-    
-    allvals_rare_5pecent2 <- data.frame(allvals_rare_5pecent2)
-    colnames(allvals_rare_5pecent2)[1] <- "X1"
-    allvals_rare_5pecent2$MAF <- "5. 5% Rare"
-    
-    allvals_common_2pecent2 <- data.frame(allvals_common_2pecent2)
-    colnames(allvals_common_2pecent2)[1] <- "X1"
-    allvals_common_2pecent2$MAF <- "3. 2% Common"
-  
-    allvals_rare_2pecent2 <- data.frame(allvals_rare_2pecent2)
-    colnames(allvals_rare_2pecent2)[1] <- "X1"
-    allvals_rare_2pecent2$MAF <- "6. 2% Rare"
-  
-    allvalsver2 <- rbind(allvals_common2, allvals_common_5pecent2,  allvals_common_2pecent2, allvals_rare2, allvals_rare_5pecent2, allvals_rare_2pecent2)
-    
-    allvalsver2 <- data.frame(allvalsver2)
-    colnames(allvalsver2) <- c(N_t_vec, "MAF")
-    
-    allvalsver22 <- data.frame(melt(allvalsver2, "MAF"))
-    colnames(allvalsver22) <- c("MAF","nt","prop")
-    
-    
-    #save the range of allele proportion captured when removing samples from optimised combinations
-    rm_sample_min2 <- data.frame(allvalsver22 %>% group_by(MAF , nt) %>% slice(which.min(prop)))
-    rm_sample_min2$MinMax <- "Min Value"
-    rm_sample_max2 <- data.frame(allvalsver22 %>% group_by(MAF , nt) %>% slice(which.max(prop)))
-    rm_sample_max2$MinMax <- "Max Value"
-    rm_sample_range2 <- rbind(rm_sample_min2, rm_sample_max2)
-    
-    rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MinMax),]
-    rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MAF),]
-    rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$nt),]
-    
-    write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured across optimsied site combinations.csv"),quote=FALSE)
-    
+
+allvals_common2 <- data.frame(allvals_common2)
+colnames(allvals_common2)[1] <- "X1"
+allvals_common2$MAF <- paste0("1. ", threshold_maf," Common")
+
+allvals_rare2 <- data.frame(allvals_rare2)
+colnames(allvals_rare2)[1] <- "X1"
+allvals_rare2$MAF <- paste0("4. ", threshold_maf," Rare")
+
+allvals_common_5pecent2 <- data.frame(allvals_common_5pecent2)
+colnames(allvals_common_5pecent2)[1] <- "X1"
+allvals_common_5pecent2$MAF <- "2. 5% Common"
+
+allvals_rare_5pecent2 <- data.frame(allvals_rare_5pecent2)
+colnames(allvals_rare_5pecent2)[1] <- "X1"
+allvals_rare_5pecent2$MAF <- "5. 5% Rare"
+
+allvals_common_2pecent2 <- data.frame(allvals_common_2pecent2)
+colnames(allvals_common_2pecent2)[1] <- "X1"
+allvals_common_2pecent2$MAF <- "3. 2% Common"
+
+allvals_rare_2pecent2 <- data.frame(allvals_rare_2pecent2)
+colnames(allvals_rare_2pecent2)[1] <- "X1"
+allvals_rare_2pecent2$MAF <- "6. 2% Rare"
+
+allvalsver2 <- rbind(allvals_common2, allvals_common_5pecent2,  allvals_common_2pecent2, allvals_rare2, allvals_rare_5pecent2, allvals_rare_2pecent2)
+
+allvalsver2 <- data.frame(allvalsver2)
+colnames(allvalsver2) <- c(paste0(N_t_vec, " ", sampspersite), "MAF")
+
+allvalsver22 <- data.frame(melt(allvalsver2, "MAF"))
+colnames(allvalsver22) <- c("MAF","nt","Allele")
+
+allvalsver222 <- separate(allvalsver22, nt, into = c("n_sites_sel", "indv_p_site"), sep = " ")
+
+allvalsver222$t_num_indv <- as.numeric(allvalsver222$n_sites_sel)*as.numeric(allvalsver222$indv_p_site)
+
+write.csv(data.frame(allvalsver222), paste0(OGM_dir, "BIGDATA_Optimised_Site_Proportions_", species,"_",site_col_name,".csv"),quote=FALSE)
+
+
+#save the range of allele proportion captured when removing samples from optimised combinations
+# rm_sample_min2 <- data.frame(allvalsver22 %>% group_by(MAF , nt) %>% slice(which.min(prop)))
+# rm_sample_min2$MinMax <- "Min Value"
+# rm_sample_max2 <- data.frame(allvalsver22 %>% group_by(MAF , nt) %>% slice(which.max(prop)))
+# rm_sample_max2$MinMax <- "Max Value"
+# rm_sample_range2 <- rbind(rm_sample_min2, rm_sample_max2)
+# rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MinMax),]
+# rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MAF),]
+# rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$nt),]
+# write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured across optimsied site combinations.csv"),quote=FALSE)
+
     
     if (auto_nt){
       
