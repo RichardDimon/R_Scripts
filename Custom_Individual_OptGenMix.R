@@ -172,9 +172,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     allelescapturedfin <- c()
     set.seed(9825)
     sw_out_list <- list()
-    tiff(paste0(OGM_dir,"3. ", species, "Temperature Plots T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
-         units = "in", width = 10, height = 14, res = 100)
-    par(mfrow = c(length(N_t_vec), 1))
+   
     for ( i in 1:length(N_t_vec) ) {
       N_t <- N_t_vec[i]
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
@@ -207,10 +205,22 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp) 
         opt_results <- optimize_single_objective(gt=gt_sw_comp2, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
       } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
-      
+
       sw_out_list[[ i ]] <- list(N_t=N_t, m=m, d_opt=opt_results)
-      plot(sw_out_list[[i]]$d_opt$value, main= paste0(site_col_name, " T_max = ", max_t," ",N_t, "samps ", IncludeNA, measure)) 
-      
+  
+      OGM_dir_temp <- paste0(OGM_dir,"Temperature_Plots/")
+                  if (!dir.exists(OGM_dir_temp)) {
+                    dir.create(OGM_dir_temp, recursive = TRUE)
+                    cat(paste("Created directory:", OGM_dir_temp, "\n"))
+                  } else {}
+        tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
+           units = "in", width = 16, height = 10, res = 100)
+        par(mfrow = c(1, 1))
+        plot(sw_out_list[[i]]$d_opt$value, main= paste0(N_t, "samples T_max = ", max_t," ", IncludeNA, " ", measure))  
+  
+        dev.off()
+
+            
       #remove n samples from the optimized combination to see how allele proportion varies)
       if (run_removesamples==TRUE){
         cat("...running section to remove 1-5 samples from optimised combination")
