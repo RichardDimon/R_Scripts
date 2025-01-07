@@ -174,9 +174,7 @@ if (any(sites_to_force%in%not_n5_sites)){
       allelescapturedfin <- c()
       set.seed(9825)
       sw_out_list <- list()
-      tiff(paste0(OGM_dir,"3. ", species, "Temperature Plots T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
-           units = "in", width = 10, height = 14, res = 100)
-      par(mfrow = c(length(N_t_vec), 1))
+     
       for ( i in 1:length(N_t_vec) ) {
         N_t <- N_t_vec[i]
         sampspersitesingle <- sampspersite[i]
@@ -231,11 +229,20 @@ if (any(sites_to_force%in%not_n5_sites)){
         } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
         
         sw_out_list[[ i ]] <- list(N_t=N_t, m=m, d_opt=opt_results)
+
+         OGM_dir_temp <- paste0(OGM_dir,"Temperature_Plots/")
+                  if (!dir.exists(OGM_dir_temp)) {
+                    dir.create(OGM_dir_temp, recursive = TRUE)
+                    cat(paste("Created directory:", OGM_dir_temp, "\n"))
+                  } else {}
+        tiff(paste0(OGM_dir_temp ,N_t,"sites ", sampspersitesingle, "sampspersite ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
+           units = "in", width = 16, height = 10, res = 100)
+        par(mar=c(1,1,1,1))
         plot(sw_out_list[[i]]$d_opt$value, main= paste0(site_col_name, " T_max = ", max_t," ",N_t, "samps ", IncludeNA, measure)) 
-    
+        dev.off()
       }
       
-      dev.off()
+    
       
       ##produce table
       solution_table <- mat.or.vec(nrow(pmac$MAC), length(N_t_vec)+3)
