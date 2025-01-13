@@ -25,11 +25,9 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   
 if (any(sites_to_force%in%not_n5_sites)){
     cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
-  } else {
-
-    if (any(sites_to_exclude%in%not_n5_sites)){
+  } else if (any(sites_to_exclude%in%not_n5_sites)){
       cat("NOTE: some of the sites you have provided in your site exclude list have been removed! consider changing this list")
-    } 
+    } else {
 
     if (auto_nt) {
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
