@@ -8,7 +8,6 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite,
                                  sites_to_exclude=sites_to_exclude){
 
-
   library(ggplot2)
   library(ggnewscale)
   #remove any sites that have less than 5 samples
@@ -23,12 +22,12 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   cat("\n The remaining sites for site optimsiation are: \n")
   print(table(dms$meta$analyses[,site_col_name]))
   
-if (any(not_n5_sites%in%sites_to_force)){
-    cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
-  } else if (any(not_n5_sites%in%sites_to_exclude)){
-      cat("NOTE: some of the sites you have provided in your site exclude list have been removed! consider changing this list")
-    } else {
-
+  #if (any(sites_to_force%in%not_n5_sites)){
+    #cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
+  #} 
+  #if (any(sites_to_exclude%in%not_n5_sites)){
+    #cat("NOTE: some of the sites you have provided in your site exclude list have been removed! consider changing this list")
+  #}
     if (auto_nt) {
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
 
@@ -443,7 +442,6 @@ write.csv(data.frame(allvalsver222), paste0(OGM_dir, "BIGDATA_Optimised_Site_Pro
           theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
         
         ggsave(paste0("5. ", species, site_col_name,"_Optmised_Site_Vs_Random_Site_sampling_Rare_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
-    }
     
   }
   
