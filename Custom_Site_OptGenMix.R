@@ -23,9 +23,9 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
   cat("\n The remaining sites for site optimsiation are: \n")
   print(table(dms$meta$analyses[,site_col_name]))
   
-if (any(sites_to_force%in%not_n5_sites)){
+if (any(not_n5_sites%in%sites_to_force)){
     cat("\n Awwwww, SNAP! some of the sites provided in the forced site list have been removed! change your forced site list and try again :) ")
-  } else if (any(sites_to_exclude%in%not_n5_sites)){
+  } else if (any(not_n5_sites%in%sites_to_exclude)){
       cat("NOTE: some of the sites you have provided in your site exclude list have been removed! consider changing this list")
     } else {
 
