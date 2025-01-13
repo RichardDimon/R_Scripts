@@ -1,5 +1,5 @@
 Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=run_removesamples,
-                                        dms=dms, gt_sw_comp=gt_sw_comp, max_t=max_t, N_t_vec=N_t_vec, mvalues=mvalues, ncpu=ncpu, 
+                                        dms=dms, gt_sw_comp=gt_sw_comp, max_t=max_t_indv, N_t_vec=N_t_vec, mvalues=mvalues, ncpu=ncpu, 
                                         unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
                                         samples_to_force=samples_to_force, initial_weights=initial_weights, weights_min=weights_min,
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
