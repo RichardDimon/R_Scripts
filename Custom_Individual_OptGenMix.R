@@ -175,6 +175,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
    
     for ( i in 1:length(N_t_vec) ) {
       N_t <- N_t_vec[i]
+    
+      if (m == "auto"){
+        m <- N_t #this sets m to the same value as whats being optimised (N_t) rather than the total numebr fo samples in the dataset
+        }
+      
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
 
       #force or exclude any samples?
@@ -202,8 +207,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         } 
       
       if (measure=="psfs"){ 
+        
         gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp) 
+        #now run the actual psfs optimisation
         opt_results <- optimize_single_objective(gt=gt_sw_comp2, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
+     
+      
       } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
 
       sw_out_list[[ i ]] <- list(N_t=N_t, m=m, d_opt=opt_results)
