@@ -6,7 +6,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
                                   threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite,
-                                 sites_to_exclude=sites_to_exclude){
+                                  sites_to_exclude=sites_to_exclude){
 
   library(ggplot2)
   library(ggnewscale)
@@ -130,20 +130,21 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
       totalsamps <- auto_nt_totalsamps
       sampspersite <- totalsamps/auto_nt_sites
-
+    
+    } else {
+          N_t_vec <- manual_sites 
+          sampspersite <- manual_sampspersite
+      }
+      
+      if (!is.null(sites_to_force) | !is.null(sites_to_exclude)){
       if (any(!length(sites_to_force)<N_t_vec)){
           cat("\n Awwwww, SNAP! you have too many sites to force for the auto_nt option! try using a manual number of sites")
       } else if (any(!length(sites_to_exclude)<N_t_vec)){
               cat("\n Awwwww, SNAP! you have too many sites to exclude for the auto_nt option! try using a manual number of sites")
-          } else {   
+          }  
       }
-      } else {
-          N_t_vec <- manual_sites 
-          sampspersite <- manual_sampspersite
-        }
        
     poppys <- table(dms$meta$analyses[,site_col_name])
-    
     sampstokeepz <- dms$sample_names[which(dms$meta$analyses[,site_col_name] %in% names(which(poppys>=sampspersite)))]
     pops <- dms$meta$analyses[,site_col_name][which(dms$meta$analyses[,site_col_name] %in% names(which(poppys>=sampspersite)))]
     
