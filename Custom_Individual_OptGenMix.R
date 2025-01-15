@@ -212,7 +212,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
 
         
         #now run the actual psfs optimisation
-        opt_results <- optimize_single_objective(gt=gt_sw_comp2, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
+        opt_results <- optimize_single_objective(gt=gt_sw_comp2, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
      
       
       } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
