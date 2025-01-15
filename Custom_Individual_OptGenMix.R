@@ -257,8 +257,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       }
     }
     
-    dev.off()
-    
     if (run_removesamples==TRUE){
       allelescapturedfin2 <- rbind(allelescapturedfin2,allelescapturedfin)
       samps2removefin <- allelescapturedfin2
