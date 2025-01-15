@@ -208,7 +208,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       
       if (measure=="psfs"){ 
         
-        gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp) 
+        gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp)
+
+        
         #now run the actual psfs optimisation
         opt_results <- optimize_single_objective(gt=gt_sw_comp2, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
      
