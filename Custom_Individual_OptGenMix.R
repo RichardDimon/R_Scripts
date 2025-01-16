@@ -206,18 +206,26 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                 initial_weights <- propose_initial_weights(nrow(gt_sw_comp), N_t, w_max=max_wts)
         } 
       
-      if (measure=="psfs"){ 
-        
-        gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp)
 
-        
-        #now run the actual psfs optimisation
+
+
+
+
+      
+      #now run the actual psfs optimisation
+
+      
+        gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp)
         opt_results <- optimize_single_objective(gt=gt_sw_comp2, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM, kinall=kinall)
         #opt_results <-   optimize_multi_objective(v1=gt_sw_comp2, v2=gt_sw_comp2,  N_t = N_t, measure_1 = measure, measure_2 = "allele_enrichment",  max_steps = max_steps, max_t = max_t,  m = m, p_depends_delta = FALSE, q = NULL, ncpu = ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min = weights_min, unlim_m = ulimM,  pMAC_mode = pMAC_mode,  kinall=kinall)
       
-      
-      } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
 
+
+
+      
+
+
+        
       sw_out_list[[ i ]] <- list(N_t=N_t, m=m, d_opt=opt_results)
   
       OGM_dir_temp <- paste0(OGM_dir,"Temperature_Plots/")
