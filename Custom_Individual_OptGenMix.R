@@ -5,7 +5,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
                                         i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                         i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
-                                        threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude){
+                                        threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=kinall){
   
   
   
@@ -212,7 +212,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
 
         
         #now run the actual psfs optimisation
-        opt_results <- optimize_single_objective(gt=gt_sw_comp2, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
+        opt_results <- optimize_single_objective(gt=gt_sw_comp2, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM, kinall=kinall)
      
       
       } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
