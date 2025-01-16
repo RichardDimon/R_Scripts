@@ -286,7 +286,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     }
     
     ##produce table
-    solution_table <- mat.or.vec(nrow(gt_sw_comp2), length(N_t_vec)+4)
+    solution_table <- mat.or.vec(nrow(gt_sw_comp), length(N_t_vec)+4)
     for (i in 1:length(N_t_vec)) { 
       #for each N_t, get the following:
       # 1. get solution table
