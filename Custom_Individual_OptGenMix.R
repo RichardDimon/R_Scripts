@@ -563,12 +563,12 @@ ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(wh
   
   
   solution_table <- data.frame(solution_table)
-  allvals_common2 <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare2 <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_common_5pecent2 <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare_5pecent2 <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_common_2pecent2 <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare_2pecent2 <- mat.or.vec(max_steps, length(N_t_vec))
+  allvals_common2 <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare2 <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_common_5pecent2 <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare_5pecent2 <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_common_2pecent2 <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare_2pecent2 <- mat.or.vec(max_steps_random, length(N_t_vec))
   
   
   
@@ -589,7 +589,7 @@ ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(wh
       SummaryTab$optsitesnsamps[g] <- length(which(solution_table$site==unique(nt_sites)[g] & solution_table[,z]>0)) #identify how many samples for each site 
     }
     
-    for (v in 1:max_steps){
+    for (v in 1:max_steps_random){
       ran_vec2 <- rep(0, nrow(gt_sw_comp))
       
       for (b in 1:length(SummaryTab$site)){
