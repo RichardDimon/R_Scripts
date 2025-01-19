@@ -13,14 +13,15 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   #How many samples do you need to have representative collections, and which individuals should I sample to optimise both rare and common allele capture?
   #How many samples should you optimise for? 
 
+  max_steps_random <- 1000 # how many randomisations whould we run? - different than max_steps for optimisation
   i_ub <- c(1:nrow(gt_sw_comp))
   
-  allvals_common <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_common_5pecent <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare_5pecent <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_common_2pecent <- mat.or.vec(max_steps, length(N_t_vec))
-  allvals_rare_2pecent <- mat.or.vec(max_steps, length(N_t_vec))
+  allvals_common <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_common_5pecent <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare_5pecent <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_common_2pecent <- mat.or.vec(max_steps_random, length(N_t_vec))
+  allvals_rare_2pecent <- mat.or.vec(max_steps_random, length(N_t_vec))
   rvals <- c()
   for ( i in 1:length(N_t_vec)) {
     iNt <- N_t_vec[i]
@@ -31,7 +32,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     ivals_common_2pecent <- c()
     ivals_rare_2pecent <- c()
     cat("\n Running ", i, " ...", iNt, "samples \n")
-    for (j in 1:max_steps) {
+    for (j in 1:max_steps_random) {
       ran_vec <- rep(0, nrow(gt_sw_comp))
       ran_vec[sample(i_ub)[1:iNt]] <- 1
       common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
