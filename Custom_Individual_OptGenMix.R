@@ -246,23 +246,23 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                     cat(paste("Created directory:", OGM_dir_temp, "\n"))
                   } else {}
 
+      tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
+           units = "in", width = 16, height = 10, res = 100)
+        par(mfrow = c(1, 1))
+        plot(sw_out_list[[i]]$d_opt$value, main= paste0(N_t, "samples T_max = ", max_t," value_1"))  
+        dev.off()
+      
       #tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
       #     units = "in", width = 16, height = 10, res = 100)
       #  par(mfrow = c(1, 1))
-      #  plot(sw_out_list[[i]]$d_opt$value, main= paste0(N_t, "samples T_max = ", max_t," value_1"))  
-      #  dev.off()
-      
-      tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
-           units = "in", width = 16, height = 10, res = 100)
-        par(mfrow = c(1, 1))
-        plot(sw_out_list[[i]]$d_opt$value_1, main= paste0(N_t, "samples T_max = ", max_t," value_1"))  
-        #dev.off()
+      #  plot(sw_out_list[[i]]$d_opt$value_1, main= paste0(N_t, "samples T_max = ", max_t," value_1"))  
+      #  #dev.off()
 
-      tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
-           units = "in", width = 16, height = 10, res = 100)
-        par(mfrow = c(1, 1))
-        plot(sw_out_list[[i]]$d_opt$value_2, main= paste0(N_t, "samples T_max = ", max_t," value_2"))  
-        dev.off()
+      #tiff(paste0(OGM_dir_temp ,N_t,"samples ", species, " Temperature Plot T=", max_t, IncludeNA,measure,"m=", m, ".tiff"),
+      #     units = "in", width = 16, height = 10, res = 100)
+      #  par(mfrow = c(1, 1))
+      #  plot(sw_out_list[[i]]$d_opt$value_2, main= paste0(N_t, "samples T_max = ", max_t," value_2"))  
+      #  dev.off()
 
             
       #remove n samples from the optimized combination to see how allele proportion varies)
