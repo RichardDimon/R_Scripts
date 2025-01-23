@@ -6,7 +6,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
                                   i_sw_common_5pecent=i_sw_common_5pecent, i_sw_rare_5pecent=i_sw_rare_5pecent,
                                   i_sw_common_2pecent=i_sw_common_2pecent, i_sw_rare_2pecent=i_sw_rare_2pecent, OGM_dir=OGM_dir,
                                   threshold_maf=threshold_maf, manual_sites=manual_sites, manual_sampspersite=manual_sampspersite,
-                                  sites_to_exclude=sites_to_exclude){
+                                  sites_to_exclude=sites_to_exclude, kinall=kinall){
 
   library(ggplot2)
   library(ggnewscale)
@@ -217,25 +217,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
             } 
   
   
-     
-      #now run the actual psfs optimisation
-      #gt_sw_comp2 <- c()
-      #gt_sw_comp2 <- gt_to_minor_alleles(gt_sw_comp)
-      
-      CommOnly <- gt_sw_comp[,which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_common_5pecent)))]
-      gt_sw_compComm <- gt_to_minor_alleles(CommOnly)
-
-      #RareOnly <- gt_sw_comp[,which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_rare_5pecent)))]
-      #gt_sw_compRare <- gt_to_minor_alleles(RareOnly)
             
-      cat("start optimising common alleles!")
-      opt_results <- optimize_single_objective(gt=gt_sw_compComm, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM, kinall=kinall)
-      
-      #cat("start multi optimisation with common and rare alleles!")
-      #opt_results <-   optimize_multi_objective(v1=gt_sw_compComm, v2=gt_sw_compRare,  N_t = N_t, measure_1 = measure, measure_2 = measure,  max_steps = max_steps, max_t = max_t,  m = m, p_depends_delta = FALSE, q = NULL, ncpu = ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min = weights_min, unlim_m = ulimM,  pMAC_mode = pMAC_mode,  kinall=kinall)
-
-
-        
         
         if (measure=="psfs"){ 
           #now run the actual psfs optimisation for common alleles
@@ -245,7 +227,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
           opt_results   <- optimize_single_objective( gt=pmac$MAC, N_t=N_t, initial_weights=initial_weights, weights_max=max_wts, 
                                                          measure=measure, max_steps=max_steps, max_t=max_t,
                                                          m=m, p_depends_delta=TRUE, weights_min=weights_min,
-                                                         pMAC_mode=TRUE, Nmat=pmac$N, ncpu=1, unlim_m = ulimM)
+                                                         pMAC_mode=TRUE, Nmat=pmac$N, ncpu=1, unlim_m = ulimM, kinall=kinall)
           
         } else {print("uh oh! add more options here from other versions of OptGenMix scripts")}
         
