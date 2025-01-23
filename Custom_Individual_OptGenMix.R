@@ -13,7 +13,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   #How many samples do you need to have representative collections, and which individuals should I sample to optimise both rare and common allele capture?
   #How many samples should you optimise for? 
 
-  max_steps_random <- 1000 # how many randomisations whould we run? - different than max_steps for optimisation
+  max_steps_random <- 10000 # how many randomisations whould we run? - different than max_steps for optimisation
   i_ub <- c(1:nrow(gt_sw_comp))
 
 
