@@ -158,12 +158,6 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     dmssites <- remove.by.list(dms, sampstokeepz)
     dms <- dmssites
   
-    #set m
-    if (mvalues=="auto2"){
-      m <- length(unique(pops))
-      } else {
-      m <- mvalues
-      }
      
     for (o in 1:length(measurevals)){
       measure <- measurevals[o]
@@ -175,10 +169,12 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       for ( i in 1:length(N_t_vec) ) {
         N_t <- N_t_vec[i]
         sampspersitesingle <- sampspersite[i]
-
-         if (mvalues=="auto"){
-            m <-  N_t*sampspersitesingle
-            }
+        
+        if (mvalues[o] == "auto"){
+        m <- N_t*sampspersitesingle #this sets m to the same value as the optimsied sites*individuals
+        } else {
+        m <- mvalues[o]
+        }
         
          cat("\n Running ", measure," for ", N_t, "Sites  and ",sampspersitesingle ," samps per site...\n")
         
