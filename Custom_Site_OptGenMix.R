@@ -174,12 +174,11 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
      
       for ( i in 1:length(N_t_vec) ) {
         N_t <- N_t_vec[i]
+        sampspersitesingle <- sampspersite[i]
 
          if (mvalues=="auto"){
-            m <-  N_t
+            m <-  N_t*sampspersitesingle
             }
-        
-        sampspersitesingle <- sampspersite[i]
         
          cat("\n Running ", measure," for ", N_t, "Sites  and ",sampspersitesingle ," samps per site...\n")
         
