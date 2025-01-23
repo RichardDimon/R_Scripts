@@ -30,7 +30,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     if (auto_nt) {
     ##### Common allele proportion for entire Genetic neighborhood for 5 samples per site #####
 
-    RandomSiteIterations <- 1000 #may not need10,000 loops for each site combo as it takes too long, 1000 may be plenty for most analyses. if so change this here
+    RandomSiteIterations <- 10000 #may not need10,000 loops for each site combo as it takes too long, 1000 may be plenty for most analyses. if so change this here
     cat("calculating common and rare alleles across differnt MAF theshold for", samplethreshold, " samples, and ", sitethreshold, " sites for ", RandomSiteIterations, " iterations")
 
     #All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
