@@ -170,7 +170,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   for (o in 1:length(measurevals)){
     measure <- measurevals[o]
     ulimM <- unlimited_mvals[o]
-    m <- 
     allelescapturedfin <- c()
     set.seed(9825)
     sw_out_list <- list()
