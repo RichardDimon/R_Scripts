@@ -170,7 +170,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   for (o in 1:length(measurevals)){
     measure <- measurevals[o]
     ulimM <- unlimited_mvals[o]
-    m <- mvalues[o]
+    m <- 
     allelescapturedfin <- c()
     set.seed(9825)
     sw_out_list <- list()
@@ -178,8 +178,10 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     for ( i in 1:length(N_t_vec) ) {
       N_t <- N_t_vec[i]
     
-      if (m == "auto"){
+      if (mvalues[o] == "auto"){
         m <- N_t #this sets m to the same value as whats being optimised (N_t) rather than the total numebr fo samples in the dataset
+        } else {
+        m <- mvalues[o]
         }
       
       cat("\n Running ", measure," for ", N_t, "samples ...\n")
@@ -228,13 +230,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       opt_results <- optimize_single_objective(gt=gt_sw_compComm, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM, kinall=kinall)
       
       #cat("start multi optimisation with common and rare alleles!")
-      #opt_results <-   optimize_multi_objective(v1=gt_sw_compComm, v2=gt_sw_compRare,  N_t = N_t, measure_1 = measure, measure_2 = measure,  max_steps = max_steps, max_t = max_t,  m = m, p_depends_delta = FALSE, q = NULL, ncpu = ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min = weights_min, unlim_m = ulimM,  pMAC_mode = pMAC_mode,  kinall=kinall)
-
-     
-
-
-
-      
+      #opt_results <-   optimize_multi_objective(v1=gt_sw_compComm, v2=gt_sw_compRare,  N_t = N_t, measure_1 = measure, measure_2 = measure,  max_steps = max_steps, max_t = max_t,  m = m, p_depends_delta = FALSE, q = NULL, ncpu = ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min = weights_min, unlim_m = ulimM,  pMAC_mode = pMAC_mode,  kinall=kinall)   
 
 
         
