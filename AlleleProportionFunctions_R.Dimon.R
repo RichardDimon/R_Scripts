@@ -19,7 +19,7 @@ dist_row_sums <- function(xy, n){
 
 
 
-Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, analysis=analysis, NumSteps = NumSteps, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold){
+Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, analysis=analysis, NumSteps = NumSteps, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold,  sites_to_exclude=sites_to_exclude, sites_to_force=sites_to_force){
   
   # dms = data
   # NumSteps = Number of Loops
