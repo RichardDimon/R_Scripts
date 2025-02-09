@@ -35,7 +35,20 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     cat("\n Running ", i, " ...", iNt, "samples \n")
     for (j in 1:max_steps_random) {
       ran_vec <- rep(0, nrow(gt_sw_comp))
-      ran_vec[sample(i_ub)[1:iNt]] <- 1
+      forcedsamps <- NULL
+      excludesamps <- NULL
+      if(!is.null(samples_to_force)){
+        forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
+        ran_vec <- replace(ran_vec,forcedsamps,1)
+      }
+      i_ub2 <- which(!i_ub%in%forcedsamps)
+      if(!is.null(samples_to_exclude)){
+        excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
+        i_ub2 <- i_ub2[which(!i_ub2%in%excludesamps)]
+      }
+      #now randomly sample additional samples ontop of what samples are forced and excluded
+      ran_vec[sample(i_ub2)[1:(iNt-length(samples_to_force))]] <- 1
+      
       common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
       ivals_common[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common))
       ivals_rare[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_rare))
