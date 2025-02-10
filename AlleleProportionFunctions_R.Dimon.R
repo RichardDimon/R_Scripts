@@ -50,7 +50,24 @@ Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, an
       
       t_num_indv <- n_sites_sel*n_indiv_sel
       for (m in 1:NumSteps) {
-        rand_sites_sel <- unique_sites[sample(1:length(unique_sites))[1:n_sites_sel]]; #print(rand_sites_sel)
+        #randomly select a specified numebr of sites while forcing/excluding any sites:
+        ran_vec <- rep(0, length(unique_sites))      
+        forcedsites <- NULL
+        excludesites <- NULL
+        
+        if(!is.null(sites_to_force)){
+          forcedsites <- forcedsites <- which(unique_sites%in%sites_to_force)
+          ran_vec <- replace(ran_vec,forcedsites,1)
+        }
+        unique_sites2 <- which(!unique_sites%in%forcedsites)       
+        if(!is.null(sites_to_exclude)){
+          excludesites <- which(unique_sites%in%sites_to_exclude)
+          unique_sites2 <- unique_sites2[which(!unique_sites2%in%excludesites)]
+        }
+
+        ran_vec[sample(unique_sites2)[1:(n_sites_sel-length(sites_to_force))]] <- 1
+        rand_sites_sel <- unique_sites[which(ran_vec>0)]
+  
         rand_indiv_sel <- c()
         for (s in 1:n_sites_sel) {
           rand_indiv <- as.character(dms_meta$sample[which(dms_meta$site == rand_sites_sel[s])][sample(1:length(which(dms_meta$site == rand_sites_sel[s])))[1:n_indiv_sel]])
