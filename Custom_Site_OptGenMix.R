@@ -127,7 +127,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
       auto_nts <- data.frame(auto_nts[order(auto_nts$n_sites_sel),])
       auto_nt_sites <- as.numeric(as.character(auto_nts$n_sites_sel))[1]
       auto_nt_totalsamps <- as.numeric(as.character(auto_nts$t_num_indv ))[1]
-      N_t_vec <- c(auto_nt_sites-1, auto_nt_sites, auto_nt_sites+1) 
+      N_t_vec <- auto_nt_sites
       totalsamps <- auto_nt_totalsamps
       sampspersite <- totalsamps/auto_nt_sites
     
