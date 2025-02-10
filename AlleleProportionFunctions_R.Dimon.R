@@ -65,7 +65,7 @@ Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, an
           unique_sites2 <- unique_sites2[which(!unique_sites2%in%excludesites)]
         }
 
-        ran_vec[sample(unique_sites2)[0:(n_sites_sel-length(sites_to_force))]] <- 1
+        ran_vec[sample(unique_sites2)[n_sites_sel-length(sites_to_force)]] <- 1
         rand_sites_sel <- unique_sites[which(ran_vec>0)]
   
         rand_indiv_sel <- c()
