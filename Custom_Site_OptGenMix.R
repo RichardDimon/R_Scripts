@@ -36,8 +36,8 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     #All5Sites_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     #All5Sites_rare_MAFSingle <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     
-    All5Sites_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
-    All5Sites_rare_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
+    All5Sites_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold, sites_to_exclude=sites_to_exclude, sites_to_force=sites_to_force)
+    All5Sites_rare_MAF5 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_5pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold, sites_to_exclude=sites_to_exclude, sites_to_force=sites_to_force)
     
     #All5Sites_MAF2 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_common_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
     #All5Sites_rare_MAF52 <- Common_Allele_Prop_Random_Sites(dms = dms, gt_sw_comp=gt_sw_comp, analysis=site_col_name, NumSteps=RandomSiteIterations, i_sw_common=i_sw_rare_2pecent, samplethreshold = samplethreshold, sitethreshold = sitethreshold)
