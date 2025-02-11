@@ -6,7 +6,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL){
   
   
-  
+
   ####Step 1####
   #How many samples do you need to have representative collections, and which individuals should I sample to optimise both rare and common allele capture?
   #How many samples should you optimise for? 
@@ -68,7 +68,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   allvals2 <- data.frame(allvals2)
   colnames(allvals2) <- c("MAF","nt","prop")
   
-  write.table(allvals2, paste0(OGM_dir, "BIGDATA_Randomised_Individuals_", species,"_",site_col_name,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+  write.table(allvals2, paste0(OGM_dir, "BIGDATA_Randomised_Individuals.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
   
   
   allvals2min <- data.frame(allvals2 %>% group_by(MAF, nt) %>% slice(which.min(prop)))
@@ -94,7 +94,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   # scale_colour_manual(name = "Measure", values = rainbow(length(unique(Optvals$m)))) +   
   # scale_shape_manual(name = "Measure", values = shapeslist[1:length(unique(Optvals$measure))]) 
   
-  ggsave(paste0("1. ",species, site_col_name,"_Individual_Randomisation_Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("1. Random Sampling Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   ggplot()+  
     geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
@@ -110,7 +110,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   # scale_colour_manual(name = "Measure", values = rainbow(length(unique(Optvals$m)))) +   
   # scale_shape_manual(name = "Measure", values = shapeslist[1:length(unique(Optvals$measure))]) 
   
-  ggsave(paste0("2. ",species, site_col_name,"_Individual_Mininmmum_AlleleProp_Capture_from_Randomisation_Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("2. Random Sampling Mininmmum Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
 
   
@@ -248,6 +248,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       samps2removefin <- allelescapturedfin2
     }
     
+    
+    
     ##produce table
     solution_table <- mat.or.vec(nrow(gt_sw_comp), length(N_t_vec)+4)
     for (i in 1:length(N_t_vec)) { 
@@ -271,12 +273,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         scale_x_continuous("minor_allele_counts", labels = as.character(CAC$minor_allele_counts), breaks = CAC$minor_allele_counts)+
         ggtitle(paste0("Super Common Alleles - common allele count of common alleles \nNumber of common alleles (MAF5%): ", ncol(commonALinSamps), "\n", "# of CA found in less than 10% of select samples: ", length(which(CAC$propindv<0.10)), " (",round(length(which(CAC$propindv<0.10))/length(CAC$propindv)*100, 3), "%)"))
       
-      ggsave(paste0("3a. ",species, site_col_name,"Super Common Alleles of ",length(which(sol_vec>0)), " Optimsised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
+      ggsave(paste0("3a. Super Common Alleles in Optimsised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
       
-      
-      
-      
-      
+
       common_alleles  <- common_allele_count(gt_sw_comp, sol_vec) #returns: number_common_alleles=number_common_alleles, minor_allele_counts=minor_allele_counts  #common_alleles[[2]]: minor allele count is greater than zero and alleles with a minimum allele freq greater than  0.03 #ie, this asks, which loci were common (> 0.02) in the whole population, and are also represented by two alleles in the proposed conservation population...
       out_alleles[i,1] <- i
       out_alleles[i,2] <- length(intersect(which(common_alleles[[2]] > 0), i_sw_common))
@@ -290,23 +289,28 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     solution_table[,i+3] <- dms$meta$lat
     solution_table[,i+4] <- dms$meta$long
     colnames(solution_table) <- c(N_t_vec, "sample", "site", "lat", "long")  #remember to give column names
-    write.table(solution_table, paste0(OGM_dir, species,"_",site_col_name,"_Individual_Combinations_singleton=",threshold_maf, "_maxt=", max_t,"_",IncludeNA,measure,"m=",m,".csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+   
     Optvals <- rbind(Optvals, data.frame(measure= measure,
                                          m=m, 
                                          nt = c(N_t_vec), 
                                          prop_common = cbind(c(out_alleles[,2]/length(i_sw_common))), 
                                          prop_rare = cbind(c(out_alleles_rare[,2]/length(i_sw_rare)))
-                                         
-    ))
+                                         ))
     
   }
   
   colnames(Optvals) <- c("measure", "m", "nt", "Common", "Rare")
-  Optvalsfin <- Optvals
+  Optvalsfin <- Optvals 
+  Optvals_extend <- matrix(ncol=5, nrow=(nrow(solution_table)-nrow(Optvals)))
+  colnames(Optvals_extend) <- colnames(Optvals)
+  Optvals_extend <- rbind(Optvals, Optvals_extend)
+  Optvals_extend[is.na(Optvals_extend)] <- ""
   
-  #save optimised allele proportion cpatured for each nt
-  write.csv(Optvalsfin, paste0(OGM_dir, species,"_",site_col_name,"_Optimsied common and rare proportion captured across different MAF thresholds.csv"),quote=FALSE)
+  solution_tablefin <- cbind(solution_table, Optvals_extend)
   
+  write.table(solution_tablefin, paste0(OGM_dir, "Optimised_Individual_Combination.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+
+
   
   #save the range of allele proportion captured when removing samples from optimised combinations
   if (run_removesamples==TRUE){
@@ -319,7 +323,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     rm_sample_range <- rm_sample_range[order(rm_sample_range$MinMax),]
     rm_sample_range <- rm_sample_range[order(rm_sample_range$nt),]
     
-    write.csv(rm_sample_range, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured removing samples from optimsied combos.csv"),quote=FALSE)
+    write.csv(rm_sample_range, paste0(OGM_dir, "Range of allele capture removing samples from optimsied combo.csv"),quote=FALSE)
   }
   
   
@@ -388,7 +392,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     theme_minimal()+ 
     ggtitle(paste0("Common AlleleProp using 5% MAF VS Random. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
     theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
-  ggsave(paste0("4. ", species, site_col_name,"_Optmised_Vs_Random_Common_Only_5%_MAF_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("4. Optmised Vs Random Common Alleles.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
   
@@ -431,7 +435,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     theme_minimal()+ 
     ggtitle(paste0("Rare AlleleProp using 5% MAF VS Random. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
     theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
-  ggsave(paste0("5. ", species, site_col_name,"_Optmised_Vs_Random_Rare_Only_5%_MAF_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("5. Optmised Vs Random Rare Alleles.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
   #optimised vs removing samples - Common Only for 5% MAF
@@ -458,7 +462,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       ggtitle(paste0("Common AlleleProp using 5% MAF removing 1-5 Samples. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
       theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
     
-    ggsave(paste0("6. ", species, site_col_name,"_Optmised_Vs_RemovingSamples_Common_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+    ggsave(paste0("6. Optmised Vs Removing Samples Common Alleles", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
     
     
     #optimised vs removing samples - Rare Only 5% MAF
@@ -482,7 +486,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       ggtitle(paste0("Rare AlleleProp using 5% MAF removing 1-5 Samples. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
       theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
     
-    ggsave(paste0("7. ",species, site_col_name,"_Optmised_Vs_RemovingSamples_Rare_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+    ggsave(paste0("7. Optmised Vs Removing Samples Rare Alleles"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
     
   }
   
@@ -562,7 +566,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MAF),]
   rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$nt),]
   
-  write.csv(rm_sample_range2, paste0(OGM_dir, species,"_",site_col_name,"_range of AlleleProp captured when considering sampling optimised combos from the general sites.csv"),quote=FALSE)
+  write.csv(rm_sample_range2, paste0(OGM_dir, "Replacement of optimised samples at the same site.csv"),quote=FALSE)
   
   
   
@@ -587,7 +591,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     ggtitle(paste0("Common AlleleProp Optimised sampling Vs General sampling across the same sites.5% MAF. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
     theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
   
-  ggsave(paste0("8. ", species, site_col_name,"_Optmised_Vs_General_sampling_across_same_sites_Common_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("8. Optmised Vs Replacement at the same site Common Alleles.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
   #now plot the rare variation compared to optimised sample combo - with 5% MAF
@@ -611,8 +615,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     ggtitle(paste0("Rare AlleleProp Optimised sampling Vs General sampling across the same sites. 5% MAF. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
     theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
   
-  ggsave(paste0("9. ", species, site_col_name,"_Optmised_Vs_General_sampling_across_same_sites_Rare_Only", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  ggsave(paste0("9. Optmised Vs Replacement at the same site Rare Alleles.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   
 }
-
