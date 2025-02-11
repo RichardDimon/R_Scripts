@@ -93,21 +93,21 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   ggsave(paste0("1. Random Sampling Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
-  ggplot()+  
-    geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
-    ylim(minval,maxval)+
-    theme_minimal()+ 
-    geom_hline(yintercept = 0.9, linetype="dashed", alpha=0.5, colour="red")+
-    geom_hline(yintercept = 0.5, linetype="dashed", alpha=0.5, colour="blue")+
+  #ggplot()+  
+    #geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
+    #ylim(minval,maxval)+
+    #theme_minimal()+ 
+    #geom_hline(yintercept = 0.9, linetype="dashed", alpha=0.5, colour="red")+
+    #geom_hline(yintercept = 0.5, linetype="dashed", alpha=0.5, colour="blue")+
     #geom_point(data=allvals2, aes(x = factor(nt), y = prop), colour="red", size=0.01) +
     #geom_point(data = Randvals, mapping = aes(x = factor(nt), y = prop),colour=c("black"), size=1)+
-    labs(x = "Samples", y = "Allele Proportion", colour="MAF Common Vs Rare")+
-    ggtitle(paste0("Maximum AlleleProp Captured from randomisation. Total Samples: ",nrow(gt_sw_comp), ". SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
-    theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position = "right") #c(0.85,0.25))
+    #labs(x = "Samples", y = "Allele Proportion", colour="MAF Common Vs Rare")+
+    #ggtitle(paste0("Maximum AlleleProp Captured from randomisation. Total Samples: ",nrow(gt_sw_comp), ". SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
+    #theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position = "right") #c(0.85,0.25))
   # scale_colour_manual(name = "Measure", values = rainbow(length(unique(Optvals$m)))) +   
   # scale_shape_manual(name = "Measure", values = shapeslist[1:length(unique(Optvals$measure))]) 
   
-  ggsave(paste0("2. Random Sampling Mininmmum Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+  #ggsave(paste0("1. Random Sampling Mininmmum Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
 
   
