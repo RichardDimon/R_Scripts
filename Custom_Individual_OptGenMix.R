@@ -47,7 +47,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         i_ub2 <- i_ub2[which(!i_ub2%in%excludesamps)]
       }
       #now randomly sample additional samples ontop of what samples are forced and excluded
-      ran_vec[sample(i_ub2)[iNt-length(samples_to_force)]] <- 1
+      ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
       
       common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
       ivals_common[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common))
