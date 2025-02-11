@@ -332,7 +332,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
 
     solution_tablefin <- cbind(solution_table, Optvals_extend)
     
-    write.table(solution_tablefin, paste0(OGM_dir, "2. Optimsised_Site_Combinations.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
+    write.table(solution_tablefin, paste0(OGM_dir, "2. Optimised_Site_Combinations.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
     
     if (auto_nt){
       
@@ -366,7 +366,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
         ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
         theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
       
-      ggsave(paste0("2. Optmised Site Vs Random Common.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+      ggsave(paste0("2. Optimised Site Vs Random Common.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
       
       
       
@@ -397,7 +397,7 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
         ggtitle(paste0("Common AlleleProp Capture when sampling across Optimised sites. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
         theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
       
-      ggsave(paste0("2. Optmised Site Vs Random Rare.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+      ggsave(paste0("2. Optimised Site Vs Random Rare.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
       
     }
   }
