@@ -324,7 +324,6 @@ Custom_Site_OptGenMix <- function(max_steps=max_steps,samplethreshold=samplethre
     rm_sample_range2 <- rbind(rm_sample_min2, rm_sample_max2)
     rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MinMax),]
     rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$MAF),]
-    rm_sample_range2 <- rm_sample_range2[order(rm_sample_range2$nt),]
     
     Optvals_extend <- data.frame(matrix(ncol=6, nrow=(nrow(solution_table)-nrow(rm_sample_range2))), stringsAsFactors=FALSE)
     colnames(Optvals_extend) <- colnames(rm_sample_range2)
