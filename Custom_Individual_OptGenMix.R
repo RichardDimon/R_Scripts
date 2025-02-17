@@ -3,12 +3,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
                                         samples_to_force=samples_to_force, initial_weights=initial_weights, weights_min=weights_min,
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
-                                        OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL){
+                                        OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL, sampperpopthreshold=sampperpopthreshold){
   
   
- ####Step 1####
+  ####Step 1####
   #How many samples do you need to have representative collections, and which individuals should I sample to optimise both rare and common allele capture?
   #How many samples should you optimise for? 
+  library(questionr)
   
   max_steps_random <- max_steps # how many randomisations whould we run? - sometyimes we want this smaller than max_steps for optimisation
   i_ub <- c(1:nrow(gt_sw_comp))
@@ -35,6 +36,22 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       }
       #now randomly sample additional samples ontop of what samples are forced and excluded
       ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
+      
+      if (iNt>length(forcedsamps)){
+        
+        if (!is.null(sampperpopthreshold)){
+          inzz <- which(ran_vec>0)
+          inzz <- inzz[!inzz%in%forcedsamps]
+          
+          #Make sure any combination randomly selected has equal to or less than x individfuals sampled per site
+          while(any(freq(dms$meta$analyses[,site_col_name][inzz])$n>sampperpopthreshold)){ 
+              ran_vec[inzz] <- 0
+              ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
+              inzz <- which(ran_vec>0)
+              inzz <- inzz[!inzz%in%forcedsamps]
+          }
+        }
+      }
       
       common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
       ivals_common[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common))
@@ -94,22 +111,22 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   ggsave(paste0("1. Random Sampling Violin.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
   #ggplot()+  
-    #geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
-    #ylim(minval,maxval)+
-    #theme_minimal()+ 
-    #geom_hline(yintercept = 0.9, linetype="dashed", alpha=0.5, colour="red")+
-    #geom_hline(yintercept = 0.5, linetype="dashed", alpha=0.5, colour="blue")+
-    #geom_point(data=allvals2, aes(x = factor(nt), y = prop), colour="red", size=0.01) +
-    #geom_point(data = Randvals, mapping = aes(x = factor(nt), y = prop),colour=c("black"), size=1)+
-    #labs(x = "Samples", y = "Allele Proportion", colour="MAF Common Vs Rare")+
-    #ggtitle(paste0("Maximum AlleleProp Captured from randomisation. Total Samples: ",nrow(gt_sw_comp), ". SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
-    #theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position = "right") #c(0.85,0.25))
+  #geom_line(data=allvals2min, aes(x = factor(nt), y = minprop, group=MAF, colour=MAF))+ 
+  #ylim(minval,maxval)+
+  #theme_minimal()+ 
+  #geom_hline(yintercept = 0.9, linetype="dashed", alpha=0.5, colour="red")+
+  #geom_hline(yintercept = 0.5, linetype="dashed", alpha=0.5, colour="blue")+
+  #geom_point(data=allvals2, aes(x = factor(nt), y = prop), colour="red", size=0.01) +
+  #geom_point(data = Randvals, mapping = aes(x = factor(nt), y = prop),colour=c("black"), size=1)+
+  #labs(x = "Samples", y = "Allele Proportion", colour="MAF Common Vs Rare")+
+  #ggtitle(paste0("Maximum AlleleProp Captured from randomisation. Total Samples: ",nrow(gt_sw_comp), ". SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
+  #theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position = "right") #c(0.85,0.25))
   # scale_colour_manual(name = "Measure", values = rainbow(length(unique(Optvals$m)))) +   
   # scale_shape_manual(name = "Measure", values = shapeslist[1:length(unique(Optvals$measure))]) 
   
   #ggsave(paste0("1. Random Sampling Mininmmum Line.tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
   
-
+  
   
   
   
@@ -173,9 +190,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         initial_weights <- propose_initial_weights(nrow(gt_sw_comp), N_t, w_max=max_wts)
       } 
       
-  
+      
       #now run the actual psfs optimisation
-
+      
       CommOnly <- gt_sw_comp[,which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_common)))]
       gt_sw_compComm <- gt_to_minor_alleles(CommOnly)
       
@@ -272,7 +289,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       
       ggsave(paste0("2. Super Common Alleles in Optimised Samples.tiff"), path = paste0(OGM_dir), width = 12, height = 8, dpi = 300, units = "in")
       
-
+      
       common_alleles  <- common_allele_count(gt_sw_comp, sol_vec) #returns: number_common_alleles=number_common_alleles, minor_allele_counts=minor_allele_counts  #common_alleles[[2]]: minor allele count is greater than zero and alleles with a minimum allele freq greater than  0.03 #ie, this asks, which loci were common (> 0.02) in the whole population, and are also represented by two alleles in the proposed conservation population...
       out_alleles[i,1] <- i
       out_alleles[i,2] <- length(intersect(which(common_alleles[[2]] > 0), i_sw_common))
@@ -286,13 +303,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     solution_table[,i+3] <- dms$meta$lat
     solution_table[,i+4] <- dms$meta$long
     colnames(solution_table) <- c(N_t_vec, "sample", "site", "lat", "long")  #remember to give column names
-   
+    
     Optvals <- rbind(Optvals, data.frame(measure= measure,
                                          m=m, 
                                          nt = c(N_t_vec), 
                                          prop_common = cbind(c(out_alleles[,2]/length(i_sw_common))), 
                                          prop_rare = cbind(c(out_alleles_rare[,2]/length(i_sw_rare)))
-                                         ))
+    ))
     
   }
   
@@ -306,8 +323,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   solution_tablefin <- cbind(solution_table, Optvals_extend)
   
   write.table(solution_tablefin, paste0(OGM_dir, "2. Optimised Individual Combination.csv"), sep=",",quote=FALSE, row.names=FALSE, col.names=TRUE)
-
-
+  
+  
   
   #save the range of allele proportion captured when removing samples from optimised combinations
   if (run_removesamples==TRUE){
@@ -500,7 +517,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   solution_table <- data.frame(solution_table)
   allvals_common2 <- mat.or.vec(max_steps_random, length(N_t_vec))
   allvals_rare2 <- mat.or.vec(max_steps_random, length(N_t_vec))
-
+  
   for (z in 1:length(N_t_vec)) { 
     ran_vec2 <- rep(0, nrow(gt_sw_comp))
     SummaryTab <-c()
