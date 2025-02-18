@@ -35,23 +35,43 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         i_ub2 <- i_ub2[which(!i_ub2%in%excludesamps)]
       }
       #now randomly sample additional samples ontop of what samples are forced and excluded
-      ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
+     
       
       if (iNt>length(forcedsamps)){
         
         if (!is.null(sampperpopthreshold)){
-          inzz <- which(ran_vec>0)
-          inzz <- inzz[!inzz%in%forcedsamps]
           
-          #Make sure any combination randomly selected has equal to or less than x individfuals sampled per site
-          while(any(freq(dms$meta$analyses[,site_col_name][inzz])$n>sampperpopthreshold)){ 
+          if (sampperpopthreshold==1){
+            
+            sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:iNt]
+            
+            for (s in 1:length(sitestosamp)) {
+              sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
+              ran_vec[sample(sampsfromsite)[1]] <- 1
+            }
+
+          } else{
+            
+            ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
+            
+            inzz <- which(ran_vec>0)
+            inzz <- inzz[!inzz%in%forcedsamps]
+            #Make sure any combination randomly selected has equal to or less than x individfuals sampled per site
+            while(any(freq(dms$meta$analyses[,site_col_name][inzz])$n>sampperpopthreshold)){ 
               ran_vec[inzz] <- 0
               ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
               inzz <- which(ran_vec>0)
               inzz <- inzz[!inzz%in%forcedsamps]
+            }
           }
+        } else{
+          ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
         }
+        
+      } else{
+        ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
       }
+      
       
       common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
       ivals_common[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common))
