@@ -35,7 +35,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
         i_ub2 <- i_ub2[which(!i_ub2%in%excludesamps)]
       }
       #now randomly sample additional samples ontop of what samples are forced and excluded
-     
+      
       
       if (iNt>length(forcedsamps)){
         
@@ -43,13 +43,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
           
           if (sampperpopthreshold==1){
             
-            sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:iNt]
+            sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-length(samples_to_force))]
             
             for (s in 1:length(sitestosamp)) {
               sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
               ran_vec[sample(sampsfromsite)[1]] <- 1
             }
-
+            
           } else{
             
             ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
