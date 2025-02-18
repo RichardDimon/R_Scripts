@@ -43,11 +43,64 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
           
           if (sampperpopthreshold==1){
             
-            sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-length(samples_to_force))]
+            if(iNt<=length(unique(dms$meta$analyses[,site_col_name][i_ub2]))){
             
-            for (s in 1:length(sitestosamp)) {
-              sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
-              ran_vec[sample(sampsfromsite)[1]] <- 1
+              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-length(samples_to_force))]
+              
+              for (s in 1:length(sitestosamp)) {
+                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
+                ran_vec[sample(sampsfromsite)[1]] <- 1
+              }
+            } else if(iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)){
+              
+              cat("Can't sample 1 individual per site as Nt_vec is more than the number of sites in this dataset.\n...Starting to sample 2 individuals for some sites")
+              #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
+              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
+              for (s in 1:length(sitestosamp)) {
+                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
+                ran_vec[sample(sampsfromsite)[1]] <- 1
+              }
+              
+              i_ub3 <- which(as.numeric(ran_vec)==0)
+              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub3]), replace = FALSE)[1:(iNt-length(unique(dms$meta$analyses[,site_col_name][i_ub3])))]
+              
+              for (e in 1:length(sitestosamp2)) {
+                sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp2[e])
+                finsamps <- sampsfromsite2[which(ran_vec[sampsfromsite2]==0)]
+                ran_vec[sample(finsamps)[1]] <- 1
+              }
+              
+            } else if(iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
+              
+              cat("Can't sample 2 individuals per site as Nt_vec is more than double the number of sites in this dataset.\n...Starting to sample 3 individuals for some sites")
+              #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
+              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
+              for (s in 1:length(sitestosamp)) {
+                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
+                ran_vec[sample(sampsfromsite)[1]] <- 1
+              }
+              
+              i_ub3 <- which(as.numeric(ran_vec)==0)
+              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub3]), replace = FALSE)[1:(iNt-length(unique(dms$meta$analyses[,site_col_name][i_ub3])))]
+              
+              for (e in 1:length(sitestosamp2)) {
+                sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp2[e])
+                finsamps <- sampsfromsite2[which(ran_vec[sampsfromsite2]==0)]
+                ran_vec[sample(finsamps)[1]] <- 1
+              }
+              
+              i_ub4 <- which(as.numeric(ran_vec)==0)
+              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub4]), replace = FALSE)[1:(iNt-length(unique(dms$meta$analyses[,site_col_name][i_ub3]))-length(unique(dms$meta$analyses[,site_col_name][i_ub4])))]
+              
+              for (e in 1:length(sitestosamp3)) {
+                sampsfromsite3 <- which(dms$meta$analyses[,site_col_name]==sitestosamp3[e])
+                finsamps2 <- sampsfromsite3[which(ran_vec[sampsfromsite3]==0)]
+                ran_vec[sample(finsamps2)[1]] <- 1
+              }
+              
+              
+            } else {
+              cat("your N_t_vec is more than triple the number of freely available sites to select from!!! Try increasing your sampperpopthreshold to 4 or more and try again...")
             }
             
           } else{
