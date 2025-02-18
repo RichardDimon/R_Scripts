@@ -70,7 +70,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                 ran_vec[sample(finsamps)[1]] <- 1
               }
               
-            } else if(iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
+            } else if(iNt>(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2) && iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
               
               cat("Can't sample 2 individuals per site as Nt_vec is more than double the number of sites in this dataset.\n...Starting to sample 3 individuals for some sites")
               #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
