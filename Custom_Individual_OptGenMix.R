@@ -44,7 +44,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
           if (sampperpopthreshold==1){
             
             if(iNt<=length(unique(dms$meta$analyses[,site_col_name][i_ub2]))){
-            
+              
               sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-length(samples_to_force))]
               
               for (s in 1:length(sitestosamp)) {
@@ -90,8 +90,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               i_ub4 <- which(as.numeric(ran_vec)==0)
-              minussamps <- as.numeric(length(unique(dms$meta$analyses[,site_col_name][i_ub3]))+length(unique(dms$meta$analyses[,site_col_name][i_ub4])))
-              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub4]), replace = FALSE)[1:(iNt-minussamps)]
+              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub4]), replace = FALSE)[1:(iNt-length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)]
               
               for (e in 1:length(sitestosamp3)) {
                 sampsfromsite3 <- which(dms$meta$analyses[,site_col_name]==sitestosamp3[e])
