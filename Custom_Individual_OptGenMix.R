@@ -51,7 +51,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                 sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
                 ran_vec[sample(sampsfromsite)[1]] <- 1
               }
-            } else if(iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)){
+            }else if(iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)){
               
               cat("\nCan't sample 1 individual per site as Nt_vec is more than the number of sites in this dataset.\n...Starting to sample 2 individuals for some sites\n")
               #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
@@ -70,7 +70,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                 ran_vec[sample(finsamps)[1]] <- 1
               }
               
-            } else if(iNt>(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2) && iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
+            }else if(iNt>(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2) && iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
               
               cat("Can't sample 2 individuals per site as Nt_vec is more than double the number of sites in this dataset.\n...Starting to sample 3 individuals for some sites\n")
               #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
@@ -90,7 +90,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               i_ub4 <- which(as.numeric(ran_vec)==0)
-              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub4]), replace = FALSE)[1:(iNt-(length(unique(dms$meta$analyses[,site_col_name][i_ub3]))+length(unique(dms$meta$analyses[,site_col_name][i_ub4]))))]
+              minussamps <- as.numeric(length(unique(dms$meta$analyses[,site_col_name][i_ub3]))+length(unique(dms$meta$analyses[,site_col_name][i_ub4])))
+              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub4]), replace = FALSE)[1:(iNt-minussamps)]
               
               for (e in 1:length(sitestosamp3)) {
                 sampsfromsite3 <- which(dms$meta$analyses[,site_col_name]==sitestosamp3[e])
@@ -99,11 +100,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               
-            } else {
+            }else {
               cat("your N_t_vec is more than triple the number of freely available sites to select from!!! Try increasing your sampperpopthreshold to 4 or more and try again...\n")
             }
             
-          } else{
+          }else{
             
             ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
             
@@ -117,11 +118,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               inzz <- inzz[!inzz%in%forcedsamps]
             }
           }
-        } else{
+        }else{
           ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
         }
         
-      } else{
+      }else{
         ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
       }
       
