@@ -81,7 +81,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               i_ub3 <- which(as.numeric(ran_vec)==0)
-              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub3]), replace = FALSE)[1:(iNt-length(unique(dms$meta$analyses[,site_col_name][i_ub3])))]
+              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub3]), replace = FALSE)[1:(length(unique(dms$meta$analyses[,site_col_name][i_ub2])))]
               
               for (e in 1:length(sitestosamp2)) {
                 sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp2[e])
