@@ -54,6 +54,8 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
             }else if(iNt-sum(ran_vec)<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)){
               
               cat("\nCan't sample 1 individual per site as Nt_vec is more than the number of sites in this dataset.\n...Starting to sample 2 individuals for some sites\n")
+              oglength <- sum(ran_vec)
+              
               #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
               sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
               for (s in 1:length(sitestosamp)) {
@@ -64,7 +66,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               #need to also factopre in i_ub2 foir exlcuded smaplles!!!!!
               i_ub3 <- which(as.numeric(ran_vec)==0)
               
-              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub3]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-length(sitestosamp))]
+              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub3]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-(length(sitestosamp)+oglength))]
               
               for (e in 1:length(sitestosamp2)) {
                 sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp2[e])
@@ -75,6 +77,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
             }else if(iNt-sum(ran_vec)>(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2) && iNt<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
               
               cat("Can't sample 2 individuals per site as Nt_vec is more than double the number of sites in this dataset.\n...Starting to sample 3 individuals for some sites\n")
+              oglength <- sum(ran_vec)
               #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
               sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
               for (s in 1:length(sitestosamp)) {
@@ -83,7 +86,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               i_ub3 <- which(as.numeric(ran_vec)==0)
-              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub3]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-length(sitestosamp))]
+              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub3]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-(length(sitestosamp)+oglength))]
               
               
               for (e in 1:length(sitestosamp2)) {
@@ -93,7 +96,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
               }
               
               i_ub4 <- which(as.numeric(ran_vec)==0)
-              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub4]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-length(sitestosamp)*2)]
+              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][dms$meta$analyses[,site_col_name][i_ub4]%in%dms$meta$analyses[,site_col_name][i_ub2]]), replace = FALSE)[1:(iNt-(length(sitestosamp)*2+oglength))]
               
               for (e in 1:length(sitestosamp3)) {
                 sampsfromsite3 <- which(dms$meta$analyses[,site_col_name]==sitestosamp3[e])
