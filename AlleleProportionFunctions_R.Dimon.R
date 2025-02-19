@@ -84,7 +84,7 @@ Common_Allele_Prop_Random_Sites <- function(dms = dms, gt_sw_comp=gt_sw_comp, an
       big_data2 = do.call(rbind, gvals)
       OGM_DF<-rbind(OGM_DF, big_data2)
     }
-    clean_data <- OGM_DF %>% group_by(t_num_indv,n_sites_sel,m) %>% summarize(Allele=mean(Aprop),Allelen=mean(jvals), indv_p_site = n_indiv_sel) %>% data.frame
+    clean_data <- OGM_DF %>% group_by(t_num_indv,n_sites_sel,m) %>% summarize(Allele=mean(Aprop),Allelen=mean(jvals), indv_p_site = n_indiv_sel, rand_indiv_sel=rand_indiv_sel) %>% data.frame
     clean_data$t_num_indv<-as.numeric(clean_data$t_num_indv)
     # clean_data$t_num_indv <- paste("total=",clean_data$t_num_indv)
     # clean_data$n_sites_sel<-paste(clean_data$n_sites_sel,"sites")
