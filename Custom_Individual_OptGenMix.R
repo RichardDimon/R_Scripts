@@ -147,7 +147,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   allvals_rare$MAF <- paste0("Rare")
   
   
-  #allvals <- rbind(allvals_common, allvals_common_5pecent,  allvals_common_2pecent, allvals_rare, allvals_rare_5pecent, allvals_rare_2pecent)
   allvals <- rbind(allvals_common, allvals_rare)
   allvals <- data.frame(allvals)
   colnames(allvals) <- c(N_t_vec, "MAF")
@@ -400,9 +399,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   #save the range of allele proportion captured when removing samples from optimised combinations
   if (run_removesamples==TRUE){
-    rm_sample_min <- data.frame(allelescapturedfin2 %>% group_by(nsamps2remove , nt) %>% slice(which.min(vals_common_5pecent)))
+    rm_sample_min <- data.frame(allelescapturedfin2 %>% group_by(nsamps2remove , nt) %>% slice(which.min(vals_common)))
     rm_sample_min$MinMax <- "Min Value"
-    rm_sample_max <- data.frame(allelescapturedfin2 %>% group_by(nsamps2remove , nt) %>% slice(which.max(vals_common_5pecent)))
+    rm_sample_max <- data.frame(allelescapturedfin2 %>% group_by(nsamps2remove , nt) %>% slice(which.max(vals_common)))
     rm_sample_max$MinMax <- "Max Value"
     rm_sample_range <- rbind(rm_sample_min, rm_sample_max)
     
@@ -528,13 +527,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   if (run_removesamples==TRUE){
     
-    # samps2removefinCommonOnly <- samps2removefin[which(samps2removefin$MAF=="vals_common_5pecent"),]
+    # samps2removefinCommonOnly <- samps2removefin[which(samps2removefin$MAF=="vals_common"),]
     samps2removefinCommonOnly <- samps2removefin
-    minval <- min(c(min(samps2removefinCommonOnly$vals_common_5pecent), min(Optvalsfin$Common))) # find he minimum value to constrain plot
-    maxval <- max(c(max(samps2removefinCommonOnly$vals_common_5pecent), max(Optvalsfin$Common))) # find he minimum value to constrain plot
+    minval <- min(c(min(samps2removefinCommonOnly$vals_common), min(Optvalsfin$Common))) # find he minimum value to constrain plot
+    maxval <- max(c(max(samps2removefinCommonOnly$vals_common), max(Optvalsfin$Common))) # find he minimum value to constrain plot
     
     ggplot() +       
-      geom_violin(data=samps2removefinCommonOnly, mapping = aes(x = factor(nt), y = vals_common_5pecent, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
+      geom_violin(data=samps2removefinCommonOnly, mapping = aes(x = factor(nt), y = vals_common, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
                   fill=NA,size=2, position=position_dodge(width=0), scale='width')+
       scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(samps2removefinCommonOnly$nsamps2remove))),0.8)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="n Samps Removed")+
