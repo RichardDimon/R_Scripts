@@ -267,9 +267,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       CommOnly <- gt_sw_comp[,which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_common)))]
       gt_sw_compComm <- gt_to_minor_alleles(CommOnly)
       
-      #RareOnly <- gt_sw_comp[,which(colnames(gt_sw_comp)%in%rownames(data.frame(i_sw_rare_5pecent)))]
-      #gt_sw_compRare <- gt_to_minor_alleles(RareOnly)
-      
       cat("start optimising common alleles!")
       opt_results <- optimize_single_objective(gt=gt_sw_compComm, sm = NULL, N_t=N_t, measure=measure, max_steps=max_steps, max_t=max_t, m=m, p_depends_delta=FALSE, q=NULL, ncpu=ncpu, weights_max = max_wts,initial_weights = initial_weights, weights_min= weights_min, unlim_m = ulimM)
       
@@ -551,13 +548,13 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     
     
     #optimised vs removing samples - Rare Only 5% MAF
-    # samps2removefinRareOnly <- samps2removefin[which(samps2removefin$MAF=="vals_rare_5pecent"),]
+    # samps2removefinRareOnly <- samps2removefin[which(samps2removefin$MAF=="vals_rare"),]
     samps2removefinRareOnly <- samps2removefin
-    minval <- min(c(min(samps2removefinRareOnly$vals_rare_5pecent), min(Optvalsfin$Rare))) # find he minimum value to constrain plot
-    maxval <- max(c(max(samps2removefinRareOnly$vals_rare_5pecent), max(Optvalsfin$Rare))) # find he minimum value to constrain plot
+    minval <- min(c(min(samps2removefinRareOnly$vals_rare), min(Optvalsfin$Rare))) # find he minimum value to constrain plot
+    maxval <- max(c(max(samps2removefinRareOnly$vals_rare), max(Optvalsfin$Rare))) # find he minimum value to constrain plot
     
     ggplot() +       
-      geom_violin(data=samps2removefinRareOnly, mapping = aes(x = factor(nt), y = vals_rare_5pecent, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
+      geom_violin(data=samps2removefinRareOnly, mapping = aes(x = factor(nt), y = vals_rare, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
                   fill=NA,size=2, position=position_dodge(width=0), scale='width')+
       scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(samps2removefinRareOnly$nsamps2remove))),0.8)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="n Samps Removed")+
