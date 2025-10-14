@@ -544,7 +544,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       ggtitle(paste0("Common AlleleProp using 5% MAF removing 1-5 Samples. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
       theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
     
-    ggsave(paste0("3. Optimised Vs Removing Samples Common Alleles", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+    ggsave(paste0("3. Optimised Vs Removing Samples Common Alleles", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 8, height = 10, dpi = 600, units = "in")
     
     
     #optimised vs removing samples - Rare Only 5% MAF
@@ -568,7 +568,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
       ggtitle(paste0("Rare AlleleProp using 5% MAF removing 1-5 Samples. Total Samples: ",nrow(gt_sw_comp), ".Totoal SNPs ",IncludeNA, ": ", (ncol(gt_sw_comp))))+
       theme(axis.title = element_text(size=20),axis.text = element_text(size=20), legend.title = element_text(size=10), legend.text = element_text(size=10), legend.position="right")
     
-    ggsave(paste0("3. Optimised Vs Removing Samples Rare Alleles"), path = paste0(OGM_dir), width = 16, height = 8, dpi = 300, units = "in")
+      ggsave(paste0("3. Optimised Vs Removing Samples Rare Alleles", max_t,"_",IncludeNA,".tiff"), path = paste0(OGM_dir), width = 8, height = 10, dpi = 600, units = "in")
     
   }
   
@@ -701,3 +701,4 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   
 }
+
