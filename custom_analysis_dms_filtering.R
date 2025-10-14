@@ -47,8 +47,10 @@ species <- setup_variables[2, 2]
 dataset <- setup_variables[3, 2]
 RandRbase <- ""
 raw_meta_path <- setup_variables[4, 2]
-species_col_name <- setup_variables[5, 2]
-site_col_name <- setup_variables[6, 2] # this is the equivalent of analysis
+  
+species_col_name <- species_col_name
+site_col_name <- site_col_name
+  
 site_distances <- setup_variables[7, 2] %>% as.numeric()
 remove_pops_less_than_n5 <- setup_variables[8, 2]
 samples_per_pop_remove <- setup_variables[9, 2] %>% as.numeric()
@@ -463,3 +465,4 @@ if (!length(d1$sample_names)==length(dms$sample_names)){
 return(dms)
 
 }
+
