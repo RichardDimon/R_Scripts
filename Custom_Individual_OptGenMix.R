@@ -3,140 +3,125 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         unlimited_mvals=unlimited_mvals, measurevals=measurevals, 
                                         samples_to_force=samples_to_force, initial_weights=initial_weights, weights_min=weights_min,
                                         pMAC_mode=pMAC_mode, site_col_name=site_col_name, i_sw_common=i_sw_common, i_sw_rare=i_sw_rare, 
-                                        OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL, sampperpopthreshold=sampperpopthreshold){
+                                        OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL){
   
+ 
+  # --- Progressive site sampling helper ---
+  progressive_site_sampling <- function(meta_sites, iNt, forced_samples = NULL, excluded_samples = NULL) {
+    n_ind <- length(meta_sites)
+    ran_vec <- rep(0, n_ind)
+    
+    if (!is.null(forced_samples)) ran_vec[forced_samples] <- 1
+    
+    available_idx <- setdiff(1:n_ind, which(ran_vec == 1))
+    if (!is.null(excluded_samples)) available_idx <- setdiff(available_idx, excluded_samples)
+    
+    n_remaining <- iNt - sum(ran_vec)
+    if (n_remaining <= 0) return(ran_vec)
+    
+    site_vec <- meta_sites[available_idx]
+    sites_unique <- unique(site_vec)
+    max_per_site <- table(site_vec)
+    
+    sites_maxed_overall <- c()
+    while (sum(ran_vec) < iNt && length(available_idx) > 0) {
+      sites_maxed_this_round <- c()
+      
+      for (s in sites_unique) {
+        site_idx <- available_idx[which(site_vec == s)]
+        remaining_site <- max_per_site[s] - sum(ran_vec[site_idx])
+        if (remaining_site >= 1 && sum(ran_vec) < iNt) {
+          pick <- sample(site_idx, 1)
+          ran_vec[pick] <- 1
+        } else if (remaining_site == 0) {
+          sites_maxed_this_round <- c(sites_maxed_this_round, s)
+        }
+      }
+      
+      # Only record sites that maxed AND were actually sampled
+      new_maxed <- setdiff(sites_maxed_this_round, sites_maxed_overall)
+      sites_maxed_overall <- unique(c(sites_maxed_overall, new_maxed))
+      
+      # Update available indices for next round
+      available_idx <- which(ran_vec == 0)
+      site_vec <- meta_sites[available_idx]
+      sites_unique <- unique(site_vec)
+      if (length(available_idx) > 0) max_per_site <- table(site_vec)
+    }
+    
+    # Print meaningful summary only if iNt is large enough
+    if (length(sites_maxed_overall) > 0 && iNt > length(unique(meta_sites))) {
+      cat("During sampling for iNt =", iNt, 
+          "the following sites reached their max available individuals:",
+          paste(sites_maxed_overall, collapse = ", "), "\n")
+    }
+    
+    return(ran_vec)
+  }
   
-  ####Step 1####
-  #How many samples do you need to have representative collections, and which individuals should I sample to optimise both rare and common allele capture?
-  #How many samples should you optimise for? 
-  library(questionr)
+  # --- Main loop ---
+  max_steps_random <- max_steps
+  i_ub <- 1:nrow(gt_sw_comp)
   
-  max_steps_random <- max_steps # how many randomisations whould we run? - sometyimes we want this smaller than max_steps for optimisation
-  i_ub <- c(1:nrow(gt_sw_comp))
   allvals_common <- mat.or.vec(max_steps_random, length(N_t_vec))
   allvals_rare <- mat.or.vec(max_steps_random, length(N_t_vec))
-  rvals <- c()
-  for ( i in 1:length(N_t_vec)) {
+  
+  for (i in seq_along(N_t_vec)) {
     iNt <- N_t_vec[i]
-    ivals_common <- c()
-    ivals_rare <- c()
-    cat("\n Running ", i, " ...", iNt, "samples \n")
+    ivals_common <- numeric(max_steps_random)
+    ivals_rare <- numeric(max_steps_random)
+    
+    # Sites available for sampling
+    meta_sites_all <- dms$meta$analyses[, site_col_name]
+    n_sites <- length(unique(meta_sites_all))
+    
+    # Average samples per site, rounded up
+    avg_samples_per_site <- ceiling(iNt / n_sites)
+    
+    cat("\nRunning iteration", i, "for", iNt, "samples across", n_sites, "sites",
+        "(avg ~", avg_samples_per_site, "samples per site)\n")
+    
+    
     for (j in 1:max_steps_random) {
       ran_vec <- rep(0, nrow(gt_sw_comp))
-      forcedsamps <- NULL
-      excludesamps <- NULL
-      if(!is.null(samples_to_force)){
-        forcedsamps <- which(rownames(gt_sw_comp)%in%samples_to_force)
-        ran_vec <- replace(ran_vec,forcedsamps,1)
-      }
-      i_ub2 <- which(!i_ub%in%forcedsamps)
-      if(!is.null(samples_to_exclude)){
-        excludesamps <- which(rownames(gt_sw_comp)%in%samples_to_exclude)
-        i_ub2 <- i_ub2[which(!i_ub2%in%excludesamps)]
-      }
-      #now randomly sample additional samples ontop of what samples are forced and excluded
       
+      # Forced samples
+      forcedsamps <- if(!is.null(samples_to_force)) which(rownames(gt_sw_comp) %in% samples_to_force) else NULL
+      if (!is.null(forcedsamps)) ran_vec[forcedsamps] <- 1
       
-      if (iNt>length(forcedsamps)){
-        
-        if (!is.null(sampperpopthreshold)){
-          
-          if (sampperpopthreshold==1){
-            
-            if(iNt-sum(ran_vec)<=length(unique(dms$meta$analyses[,site_col_name][i_ub2]))){
-              
-              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-sum(ran_vec))]
-              
-              for (s in 1:length(sitestosamp)) {
-                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
-                ran_vec[sample(sampsfromsite)[1]] <- 1
-              }
-            }else if(iNt-sum(ran_vec)<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*2)){
-              
-              cat("\nCan't sample 1 individual per site as Nt_vec is more than the number of sites in this dataset.\n...Starting to sample 2 individuals for some sites\n")
-              oglength <- sum(ran_vec)
-              
-              #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
-              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
-              for (s in 1:length(sitestosamp)) {
-                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
-                ran_vec[sample(sampsfromsite)[1]] <- 1
-              }
-              
-              sitestosamp2 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-(length(sitestosamp)+oglength))]
-              
-              for (e in 1:length(sitestosamp2)) {
-                sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp2[e])
-                finsamps <- sampsfromsite2[which(ran_vec[sampsfromsite2]==0)]
-                ran_vec[sample(finsamps)[1]] <- 1
-              }
-              
-            }else if(iNt-sum(ran_vec)<=(length(unique(dms$meta$analyses[,site_col_name][i_ub2]))*3)){
-              
-              cat("Can't sample 2 individuals per site as Nt_vec is more than double the number of sites in this dataset.\n...Starting to sample 3 individuals for some sites\n")
-              oglength <- sum(ran_vec)
-              #first of all, sample 1 individual across each available site, then add another round of adding 1 individual per site ontop of this:
-              sitestosamp <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)
-              for (s in 1:length(sitestosamp)) {
-                sampsfromsite <- which(dms$meta$analyses[,site_col_name]==sitestosamp[s])
-                ran_vec[sample(sampsfromsite)[1]] <- 1
-              }
-              
-              for (e in 1:length(sitestosamp)) {
-                sampsfromsite2 <- which(dms$meta$analyses[,site_col_name]==sitestosamp[e])
-                finsamps <- sampsfromsite2[which(ran_vec[sampsfromsite2]==0)]
-                ran_vec[sample(finsamps)[1]] <- 1
-              }
-              
-              i_ub4 <- which(as.numeric(ran_vec)==0)
-              sitestosamp3 <- sample(unique(dms$meta$analyses[,site_col_name][i_ub2]), replace = FALSE)[1:(iNt-(length(sitestosamp)*2+oglength))]
-              
-              for (e in 1:length(sitestosamp3)) {
-                sampsfromsite3 <- which(dms$meta$analyses[,site_col_name]==sitestosamp3[e])
-                finsamps2 <- sampsfromsite3[which(ran_vec[sampsfromsite3]==0)]
-                ran_vec[sample(finsamps2)[1]] <- 1
-              }
-              
-              
-            }else {
-              cat("your N_t_vec is more than triple the number of freely available sites to select from!!! Try increasing your sampperpopthreshold to 4 or more and try again...\n")
-            }
-            
-          }else{
-            
-            ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
-            
-            inzz <- which(ran_vec>0)
-            inzz <- inzz[!inzz%in%forcedsamps]
-            #Make sure any combination randomly selected has equal to or less than x individfuals sampled per site
-            while(any(freq(dms$meta$analyses[,site_col_name][inzz])$n>sampperpopthreshold)){ 
-              ran_vec[inzz] <- 0
-              ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
-              inzz <- which(ran_vec>0)
-              inzz <- inzz[!inzz%in%forcedsamps]
-            }
-          }
-        }else{
-          ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
-        }
-        
-      }else{
-        ran_vec[sample(i_ub2)[0:(iNt-length(samples_to_force))]] <- 1
+      # Available for random sampling
+      i_ub2 <- setdiff(i_ub, forcedsamps)
+      if(!is.null(samples_to_exclude)) {
+        excludesamps <- which(rownames(gt_sw_comp) %in% samples_to_exclude)
+        i_ub2 <- setdiff(i_ub2, excludesamps)
       }
       
+      n_remaining <- iNt - sum(ran_vec)
+      if(n_remaining > 0) {
+        meta_sites <- dms$meta$analyses[, site_col_name][i_ub2]
+        ran_vec2 <- progressive_site_sampling(meta_sites = meta_sites,
+                                              iNt = n_remaining,
+                                              forced_samples = NULL,
+                                              excluded_samples = NULL)
+        ran_vec[i_ub2] <- ran_vec2
+      }
       
-      common_alleles  <- common_allele_count(gt_sw_comp, ran_vec)
-      ivals_common[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_common))
-      ivals_rare[j] <- length( intersect( which(common_alleles[[2]] > 0), i_sw_rare))
+      # Count alleles
+      common_alleles <- common_allele_count(gt_sw_comp, ran_vec)
+      ivals_common[j] <- length(intersect(which(common_alleles[[2]] > 0), i_sw_common))
+      ivals_rare[j] <- length(intersect(which(common_alleles[[2]] > 0), i_sw_rare))
     }
-    if (length(N_t_vec)>1){
-      allvals_common[,i] <- ivals_common/length(i_sw_common)
-      allvals_rare[,i] <- ivals_rare/length(i_sw_rare)
+    
+    # Store normalized results
+    if(length(N_t_vec) > 1) {
+      allvals_common[, i] <- ivals_common / length(i_sw_common)
+      allvals_rare[, i] <- ivals_rare / length(i_sw_rare)
     } else {
-      allvals_common <- ivals_common/length(i_sw_common)
-      allvals_rare <- ivals_rare/length(i_sw_rare)
+      allvals_common <- ivals_common / length(i_sw_common)
+      allvals_rare <- ivals_rare / length(i_sw_rare)
     }
   }
+  
   
   allvals_common <- data.frame(allvals_common)
   colnames(allvals_common)[1] <- "X1"
@@ -701,5 +686,6 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   
 }
+
 
 
