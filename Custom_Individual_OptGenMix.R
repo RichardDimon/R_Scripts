@@ -6,6 +6,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
                                         OGM_dir=OGM_dir, threshold_maf=threshold_maf, auto_nt=auto_nt, samples_to_exclude=samples_to_exclude, kinall=NULL){
   
  
+
   # --- Progressive site sampling helper ---
   progressive_site_sampling <- function(meta_sites, iNt, forced_samples = NULL, excluded_samples = NULL) {
     n_ind <- length(meta_sites)
@@ -71,16 +72,26 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     ivals_common <- numeric(max_steps_random)
     ivals_rare <- numeric(max_steps_random)
     
-    # Sites available for sampling
-    meta_sites_all <- dms$meta$analyses[, site_col_name]
-    n_sites <- length(unique(meta_sites_all))
+    # Available indices after considering forced/excluded samples
+    i_ub2 <- 1:nrow(gt_sw_comp)
+    forcedsamps <- if(!is.null(samples_to_force)) which(rownames(gt_sw_comp) %in% samples_to_force) else NULL
+    if (!is.null(forcedsamps)) i_ub2 <- setdiff(i_ub2, forcedsamps)
+    if(!is.null(samples_to_exclude)) {
+      excludesamps <- which(rownames(gt_sw_comp) %in% samples_to_exclude)
+      i_ub2 <- setdiff(i_ub2, excludesamps)
+    }
     
-    # Average samples per site, rounded up
-    avg_samples_per_site <- ceiling(iNt / n_sites)
+    # Sites available for sampling after exclusions
+    meta_sites_available <- dms$meta$analyses[, site_col_name][i_ub2]
+    # Number of available sites
+    n_sites_available <- length(unique(meta_sites_available))
     
-    cat("\nRunning iteration", i, "for", iNt, "samples across", n_sites, "sites",
-        "(avg ~", avg_samples_per_site, "samples per site)\n")
+    # Minimum and maximum samples per site (whole numbers)
+    min_samples_per_site <- floor(iNt / n_sites_available)
+    max_samples_per_site <- ceiling(iNt / n_sites_available)
     
+    cat("\nRandomly sampling", iNt, "samples across", n_sites_available, "available sites",
+        "(avg ~", min_samples_per_site, "-", max_samples_per_site, "samples per site)\n")
     
     for (j in 1:max_steps_random) {
       ran_vec <- rep(0, nrow(gt_sw_comp))
@@ -686,6 +697,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   
 }
+
 
 
 
