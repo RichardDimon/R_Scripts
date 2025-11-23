@@ -367,6 +367,7 @@ run_dart_cleaning_loop <- function(
   } # end while
   
   # final outputs
-  final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df)
+  final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df, treatment = treatment)
   return(final_list)
 }
+
