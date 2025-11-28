@@ -17,6 +17,16 @@ run_dart_cleaning_loop <- function(
     output_dir = paste0(species, "/outputs_", site_col_name, "_", species_col_name, "/"),
     max_rounds = 20 # safety cap to prevent runaway loops
 ) {
+  
+  orig_site_names <- dms$meta$analyses[, site_col_name]
+  orig_site_lookup <- data.frame(
+    sample = dms$sample_names,
+    site_original = orig_site_names,
+    stringsAsFactors = FALSE
+  )
+  
+  
+  
   # helper: ensure output subdirs exist
   plots_dir  <- file.path(output_dir, "plots")
   tables_dir <- file.path(output_dir, "tables")
@@ -365,8 +375,29 @@ run_dart_cleaning_loop <- function(
     }
   } # end while
   
+  
+  
+  
+  # ==================================
+  # RESTORE ORIGINAL SITE NAMES
+  # ==================================
+  message("Restoring original site names at final output…")
+  
+  # merge original site names back into final dms object
+  restored <- merge(
+    dms$meta$analyses,
+    orig_site_lookup,
+    by = "sample",
+    all.x = TRUE,
+    sort = FALSE
+  )
+  
+  # replace modified disambiguated names with original
+  dms$meta$analyses[, site_col_name] <- restored$site_original
+  
+  
+  
   # final outputs
   final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df, treatment = treatment)
   return(final_list)
 }
-
