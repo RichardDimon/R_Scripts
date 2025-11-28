@@ -138,7 +138,7 @@ run_dart_cleaning_loop <- function(
     dms <- disambiguate_site_names(dms)
     
     # kinship -> identify clones (as per your code)
-    kin <- individual_kinship_by_pop(dart_data = dms, basedir = RandRbase, species = species, dataset = dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
+    kin <- individual_kinship_by_pop_sp(dart_data = dms, basedir = RandRbase, species = species, dataset = dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
     kin[is.na(kin)] <- 0
     kin3 <- ifelse(kin < clonal_threshold, 0, 1)
     
@@ -303,7 +303,7 @@ run_dart_cleaning_loop <- function(
     
     # Final clone re-check (as in your repeated script, you ran clones again)
     dms <- disambiguate_site_names(dms)
-    kin_final <- individual_kinship_by_pop(dms, RandRbase, species, dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
+    kin_final <- individual_kinship_by_pop_sp(dms, RandRbase, species, dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
     kin_final[is.na(kin_final)] <- 0
     kin3_final <- ifelse(kin_final < clonal_threshold, 0, 1)
     network_final <- igraph::graph_from_adjacency_matrix(kin3_final, mode="undirected", diag=F, weighted=T)
@@ -369,3 +369,4 @@ run_dart_cleaning_loop <- function(
   final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df, treatment = treatment)
   return(final_list)
 }
+
