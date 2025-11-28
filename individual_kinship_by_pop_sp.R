@@ -1,3 +1,6 @@
+### Modified function to run only kinships within each pop AND within each sp within each pop
+### i.e., accounts for different species that have the exact same site name
+
 individual_kinship_by_pop_sp <- function(dart_data, basedir, species, dataset, pop, sp, maf=0.05, mis=0.2, as_bigmat=TRUE) {
   require(SNPRelate)
 
@@ -57,3 +60,4 @@ individual_kinship_by_pop_sp <- function(dart_data, basedir, species, dataset, p
   
   return(kinlist)
 }
+
