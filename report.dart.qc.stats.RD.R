@@ -48,9 +48,9 @@ report.dart.qc.stats.RD <- function (dart_data, basedir, species, dataset, thres
       missing_lines <- c(missing_lines, paste(sample_name_i, 
                                               prop_missing_i, sep = ": "))
     }
-    samples_missing_file <- paste(basedir, species, "/qual_stat/", 
-                                  treatment, "/samples_exceeding_missing_threshold.txt", 
-                                  sep = "")
+    
+samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_exceeding_missing_threshold.txt", sep = "")
+
     write.table(rownames(genotypes)[ind_samples_high_missing], 
                 file = samples_missing_file, sep = ",", quote = FALSE, 
                 row.names = FALSE, col.names = FALSE)
@@ -100,3 +100,4 @@ report.dart.qc.stats.RD <- function (dart_data, basedir, species, dataset, thres
                    threshold_missing_loci = threshold_missing_loci)
   return(QC_report)
 }
+
