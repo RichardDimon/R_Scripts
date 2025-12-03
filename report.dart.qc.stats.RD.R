@@ -1,4 +1,4 @@
-report.dart.qc.stats.RD <- function (dart_data, basedir, dataset, threshold_missing_loci = 0.5) 
+report.dart.qc.stats.RD <- function (dart_data, basedir, dataset, species, threshold_missing_loci = 0.5) 
 {
   name <- dataset
   genotypes <- dart_data$gt
@@ -99,3 +99,4 @@ report.dart.qc.stats.RD <- function (dart_data, basedir, dataset, threshold_miss
                    threshold_missing_loci = threshold_missing_loci)
   return(QC_report)
 }
+
