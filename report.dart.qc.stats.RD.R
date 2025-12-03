@@ -22,7 +22,6 @@ report.dart.qc.stats.RD <- function (dart_data, basedir, species, dataset, thres
     cat("  QC directory: ", qc_dir, " does not exist and is being created. \n")
     dir.create(qc_dir)
   }
-  
   else {
     cat("  QC directory: ", qc_dir, " already exists, content will be overwritten. \n")
   }
@@ -100,4 +99,5 @@ samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_excee
                    threshold_missing_loci = threshold_missing_loci)
   return(QC_report)
 }
+
 
