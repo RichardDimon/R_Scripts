@@ -47,12 +47,12 @@ run_dart_cleaning_loop <- function(
     # remove from d1 any samples present in dms_current (this matches your remove.by.list usage)
     d1old <- d1_current
     d1_new <- remove.by.list(d1_current, dms_current$sample_names)
-    qc1 <- report.dart.qc.stats.RD(d1_new, RandRbase, species, dataset, threshold_missing_loci = locus_miss)
+    qc1 <- report.dart.qc.stats.RD(d1_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
     d2_new <- remove.poor.quality.snps(d1_new, min_repro=0.96, max_missing=locus_miss)
-    qc2 <- report.dart.qc.stats.RD(d2_new, RandRbase, species, dataset)
+    qc2 <- report.dart.qc.stats.RD(d2_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
     d3_new <- sample.one.snp.per.locus.random(d2_new, seed=214241)
     d3_new$treatment <- paste0(d3_new$treatment, "_rep", round_tag)
-    qc3 <- report.dart.qc.stats.RD(d3_new, RandRbase, species, dataset)
+    qc3 <- report.dart.qc.stats.RD(d3_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
     
     # meta
     m1 <- read.meta.data.full.analyses.df(d3_new, RandRbase, species, dataset)
@@ -401,5 +401,6 @@ run_dart_cleaning_loop <- function(
   final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df, treatment = treatment)
   return(final_list)
 }
+
 
 
