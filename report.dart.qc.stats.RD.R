@@ -1,4 +1,4 @@
-report.dart.qc.stats.RD <- function (dart_data, basedir, species, dataset, threshold_missing_loci = 0.5) 
+report.dart.qc.stats.RD <- function (dart_data, basedir, dataset, threshold_missing_loci = 0.5) 
 {
   name <- dataset
   genotypes <- dart_data$gt
@@ -48,8 +48,8 @@ report.dart.qc.stats.RD <- function (dart_data, basedir, species, dataset, thres
                                               prop_missing_i, sep = ": "))
     }
     
-samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_exceeding_missing_threshold.txt", sep = "")
-
+    samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_exceeding_missing_threshold.txt", sep = "")
+    
     write.table(rownames(genotypes)[ind_samples_high_missing], 
                 file = samples_missing_file, sep = ",", quote = FALSE, 
                 row.names = FALSE, col.names = FALSE)
@@ -60,22 +60,22 @@ samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_excee
     report_missing <- "None"
   }
   AF.summary <- calculate.AF.summary(dart_data)
-  pdf(file = paste(basedir, species, "/qual_stat/", treatment, 
+  pdf(file = paste(basedir, "/qual_stat/", treatment, 
                    "/missing_data_by_sample.pdf", sep = ""))
   hist(count_of_missing_by_sample/num_samples, xlab = "proportion of samples that are missing", 
        ylab = "frequency", main = "")
   dev.off()
-  pdf(file = paste(basedir, species, "/qual_stat/", treatment, 
+  pdf(file = paste(basedir, "/qual_stat/", treatment, 
                    "/missing_data_by_locus.pdf", sep = ""))
   hist(count_of_missing_by_locus/num_loci, 200, xlab = "proportion of loci that are missing", 
        ylab = "frequency", main = "")
   dev.off()
-  pdf(file = paste(basedir, species, "/qual_stat/", treatment, 
+  pdf(file = paste(basedir, "/qual_stat/", treatment, 
                    "/reprodicibility_of_loci.pdf", sep = ""))
   hist(locus_repro, 200, xlab = "locus reproducibility score", 
        ylab = "frequency", main = "")
   dev.off()
-  pdf(file = paste(basedir, species, "/qual_stat/", treatment, 
+  pdf(file = paste(basedir, "/qual_stat/", treatment, 
                    "/AF_versus_He.pdf", sep = ""))
   plot(AF.summary$P, AF.summary$H, xlab = "Allele Frequency", 
        ylab = "Heterozygosity", main = "")
@@ -87,17 +87,15 @@ samples_missing_file <- paste(basedir, "/qual_stat/", treatment, "/samples_excee
   clones_line <- paste("Number of clones: ", num_clones, sep = "")
   samples_line <- paste("Number of samples: ", num_samples, 
                         sep = "")
-  report_file <- file(paste(basedir, species, "/qual_stat/", 
+  report_file <- file(paste(basedir, "/qual_stat/", 
                             treatment, "/quality_report.txt", sep = ""))
   report <- c(date_line, species_line, name_line, snps_line, 
               clones_line, samples_line, "\n", missing_lines, "\n")
   writeLines(report, report_file)
   close(report_file)
-  cat(paste("  QC report in ", basedir, species, "/qual_stat/", 
+  cat(paste("  QC report in ", basedir, "/qual_stat/", 
             treatment, "/\n", sep = ""))
   QC_report = list(treatment = treatment, report_missing = report_missing, 
                    threshold_missing_loci = threshold_missing_loci)
   return(QC_report)
 }
-
-
