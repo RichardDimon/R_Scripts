@@ -199,19 +199,19 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   #OK ready to optimise based off the randomisation!  
   # Identify how many samples to optimise for in downstream analyses
+
 if (auto_nt) {
   auto_nt_df <- allvals2min[which(allvals2min$MAF == "Common" & allvals2min$minprop > 0.9), ] # find sample combos where min random allele prop > 0.9
   if (nrow(auto_nt_df) > 0) {
     auto_nt_df <- auto_nt_df[order(auto_nt_df$nt), ]
     N_t_vec <- as.numeric(as.character(auto_nt_df$nt[1]))
   } else {
-    # fallback: use the maximum nt from allvals2min
-    N_t_vec <- max(as.numeric(as.character(allvals2min$nt)))
-    cat("No combination reached 90% common alleles; using maximum N_t =", N_t_vec, "\n")
+    stop("No combination reached 90% common alleles. Function stopped to prevent downstream analyses.")
   }
 } else {
   N_t_vec <- N_t_vec
 }
+
   
   
   max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
@@ -703,6 +703,7 @@ if (auto_nt) {
   
   
 }
+
 
 
 
