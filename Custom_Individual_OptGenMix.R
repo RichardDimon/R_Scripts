@@ -197,16 +197,22 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   
   
-  #OK ready to optimise based off the randomisation!
-  #idenify how many samples to optimsie for in downstream analyses:
-  if (auto_nt){
-    auto_nt <- allvals2min[which(allvals2min$MAF=="Common" & allvals2min$minprop>0.9),] # find the sample combo where the min random allele prop for 5% MAF reaches over 90% common alleles
-    auto_nt <- data.frame(auto_nt[order(auto_nt$nt),])
-    auto_nt <- as.numeric(as.character(auto_nt$nt))[1]
-    N_t_vec <- auto_nt
+  #OK ready to optimise based off the randomisation!  
+  # Identify how many samples to optimise for in downstream analyses
+if (auto_nt) {
+  auto_nt_df <- allvals2min[which(allvals2min$MAF == "Common" & allvals2min$minprop > 0.9), ] # find sample combos where min random allele prop > 0.9
+  if (nrow(auto_nt_df) > 0) {
+    auto_nt_df <- auto_nt_df[order(auto_nt_df$nt), ]
+    N_t_vec <- as.numeric(as.character(auto_nt_df$nt[1]))
   } else {
-    N_t_vec <- N_t_vec
+    # fallback: use the maximum nt from allvals2min
+    N_t_vec <- max(as.numeric(as.character(allvals2min$nt)))
+    cat("No combination reached 90% common alleles; using maximum N_t =", N_t_vec, "\n")
   }
+} else {
+  N_t_vec <- N_t_vec
+}
+  
   
   max_wts <- rep(1, nrow(gt_sw_comp)) # how many times can an individual be re-sampled? default is only once.
   
@@ -419,11 +425,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   # #Common and Rare - Optimised Vs Random - with all MAF values
   # ggplot()+       
   #   geom_violin(data=RandomSamps, mapping = aes(x = factor(nt), y = prop, colour = MAF), 
-  #               fill=NA,size=2, alpha=0.5, position=position_dodge(width=0), scale='width')+
+  #               fill=NA, size=2, alpha=0.5, position=position_dodge(width=0), scale='width')+
   #   scale_colour_manual(values=c(alpha(rainbow_hcl(6),0.8)))+
   #   new_scale_color()+
   #   geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = prop, colour= MAF), 
-  #              fill= NA ,size=2, alpha=1, position=position_dodge(width=0))+
+  #              fill= NA , size=2, alpha=1, position=position_dodge(width=0))+
   #   scale_colour_manual(values=c(rainbow_hcl(6)))+
   #   labs(x = "MAF", y = "Allele Proportion", colour="MAF", colour="Allele Capture")+
   #   ylim(minval,maxval)+
@@ -440,11 +446,11 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   # 
   # ggplot()+       
   #   geom_violin(data=RandomSampsCommonOnly, mapping = aes(x = factor(nt), y = prop, colour = MAF), 
-  #               fill=NA,size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
+  #               fill=NA, size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
   #   scale_colour_manual(values=c(alpha(rainbow_hcl(3),0.8)))+
   #   new_scale_color()+
   #   geom_point(data = OptvalsfinCommonOnly, mapping = aes(x = factor(nt), y = prop, colour= MAF), 
-  #              fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+  #              fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
   #   scale_colour_manual(values=c(alpha(rainbow_hcl(3),1)))+
   #   labs(x = "N Samples", y = "Allele Proportion", colour="MAF", colour="Allele Capture")+
   #   ylim(minval,maxval)+
@@ -460,9 +466,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   ggplot()+       
     geom_violin(data=RandomSampsCommonOnly, mapping = aes(x = factor(nt), y = prop, fill=MAF), colour = "black", 
-                ,size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
+                size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
     geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Common, colour= "Optimised"), 
-               fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+               fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
     scale_colour_manual(values="red")+
     scale_fill_manual(values=alpha("grey", 0.5))+
     labs(x = "N Samples", y = "Allele Proportion", colour="Optimised", fill="Random")+
@@ -486,7 +492,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   #   scale_colour_manual(values=c(alpha(rainbow_hcl(3),0.8)))+
   #   new_scale_color()+
   #   geom_point(data = OptvalsfinRareOnly, mapping = aes(x = factor(nt), y = prop, colour= MAF), 
-  #              fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+  #              fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
   #   scale_colour_manual(values=c(alpha(rainbow_hcl(3),1)))+
   #   labs(x = "N Samples", y = "Allele Proportion", colour="MAF", colour="Allele Capture")+
   #   ylim(minval,maxval)+
@@ -503,9 +509,9 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   ggplot()+       
     geom_violin(data=RandomSampsRarenOnly, mapping = aes(x = factor(nt), y = prop, fill=MAF), colour = "black", 
-                ,size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
+                size=2, alpha=0.5, position=position_dodge(width=0), scale="width")+
     geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Rare, colour= "Optimsed"), 
-               fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+               fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
     scale_colour_manual(values="red")+
     scale_fill_manual(values=alpha("grey", 0.5))+
     labs(x = "N Samples", y = "Allele Proportion", colour="Optimised", fill="Random")+
@@ -527,12 +533,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     
     ggplot() +       
       geom_violin(data=samps2removefinCommonOnly, mapping = aes(x = factor(nt), y = vals_common, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
-                  fill=NA,size=2, position=position_dodge(width=0), scale='width')+
+                  fill=NA, size=2, position=position_dodge(width=0), scale='width')+
       scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(samps2removefinCommonOnly$nsamps2remove))),0.8)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="n Samps Removed")+
       new_scale_colour()+
       geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Common, group=nt, colour= "Optimised"),  
-                 fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+                 fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
       scale_colour_manual(values=c(alpha("red",1)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="Optimised Combo")+
       ylim(minval,maxval)+
@@ -551,12 +557,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
     
     ggplot() +       
       geom_violin(data=samps2removefinRareOnly, mapping = aes(x = factor(nt), y = vals_rare, group=interaction(nsamps2remove, nt), colour=factor(nsamps2remove)), 
-                  fill=NA,size=2, position=position_dodge(width=0), scale='width')+
+                  fill=NA, size=2, position=position_dodge(width=0), scale='width')+
       scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(samps2removefinRareOnly$nsamps2remove))),0.8)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="n Samps Removed")+
       new_scale_colour()+
       geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Rare, group=nt, colour= "Optimised"), 
-                 fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+                 fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
       scale_colour_manual(values=c(alpha("red",1)))+
       labs(x = "N Samples", y = "Allele Proportion", colour="Optimised Combo",)+
       ylim(minval,maxval)+
@@ -656,12 +662,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   ggplot() +       
     geom_violin(data=GeneralSampComboCommonOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
-                fill=NA,size=2, position=position_dodge(width=0), scale='width')+
+                fill=NA, size=2, position=position_dodge(width=0), scale='width')+
     labs(x = "N Samples", y = "Allele Proportion", colour="Samples")+
     scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboCommonOnly$nt))),1)))+
     new_scale_colour()+
     geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Common, group=nt, colour= "Optimised"),  
-               fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+               fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
     scale_colour_manual(values=c(alpha("red",1)))+
     labs(x = "N Samples", y = "Allele Proportion", colour="Optimised Combo")+
     ylim(minval,maxval)+
@@ -680,12 +686,12 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   ggplot() +       
     geom_violin(data=GeneralSampComboRareOnly, mapping = aes(x = factor(nt), y = prop, group=interaction(nt, MAF), colour=factor(nt)), 
-                fill=NA,size=2, position=position_dodge(width=0), scale='width')+
+                fill=NA, size=2, position=position_dodge(width=0), scale='width')+
     labs(x = "N Samples", y = "Allele Proportion", colour="Samples")+
     scale_colour_manual(values=c(alpha(rainbow_hcl(length(unique(GeneralSampComboRareOnly$nt))),1)))+
     new_scale_colour()+
     geom_point(data = Optvalsfin, mapping = aes(x = factor(nt), y = Rare, group=nt, colour= "optimised"),  
-               fill=NA,size=2, alpha=1, position=position_dodge(width=0))+
+               fill=NA, size=2, alpha=1, position=position_dodge(width=0))+
     scale_colour_manual(values=c(alpha("red",1)))+
     labs(x = "N Samples", y = "Allele Proportion", colour="Optimised Combo")+
     ylim(minval,maxval)+
@@ -697,6 +703,7 @@ Custom_Individual_OptGenMix <- function(max_steps=max_steps, run_removesamples=r
   
   
 }
+
 
 
 
