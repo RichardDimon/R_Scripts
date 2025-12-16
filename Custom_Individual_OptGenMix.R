@@ -206,7 +206,8 @@ if (auto_nt) {
     auto_nt_df <- auto_nt_df[order(auto_nt_df$nt), ]
     N_t_vec <- as.numeric(as.character(auto_nt_df$nt[1]))
   } else {
-    stop("No combination reached 90% common alleles. Function stopped to prevent downstream analyses.")
+    message("No combination reached 90% common alleles. Function will exit quietly.")
+    return(invisible(NULL))  # exit function without error
   }
 } else {
   N_t_vec <- N_t_vec
@@ -703,6 +704,7 @@ if (auto_nt) {
   
   
 }
+
 
 
 
