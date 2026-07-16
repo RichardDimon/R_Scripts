@@ -24,6 +24,7 @@ run_dart_cleaning_loop <- function(
     clone_table_include_singletons = TRUE,
     write_round_summaries = TRUE,
     save_kinship_matrices = TRUE,
+    save_reference_kinship_matrices = TRUE,
     compress_kinship_matrices = FALSE
 ) {
 
@@ -46,7 +47,14 @@ run_dart_cleaning_loop <- function(
 
   message(
     "Clone-removal scope: ",
-    if (clone_scope == "site") "site (separate species x site groups)" else "species"
+    if (clone_scope == "site") {
+      paste0(
+        "site (species-wide kinship reference, with clone comparisons ",
+        "restricted to the same species and site)"
+      )
+    } else {
+      "species (species-wide kinship and clone comparisons)"
+    }
   )
   message("Intermediate QC reports: ", write_intermediate_qc)
 
@@ -255,7 +263,7 @@ run_dart_cleaning_loop <- function(
   }
 
   # ============================================================
-  # Calculate clone kinship using the selected scope
+  # Calculate species-referenced kinship for clone detection
   # ============================================================
   calculate_clone_kinship <- function(dms_obj) {
     meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
@@ -275,47 +283,76 @@ run_dart_cleaning_loop <- function(
 
     species_values <- as.character(meta[[species_col_name]])
 
-    # Always recover the original site values by sample name. Site labels may
-    # have been temporarily disambiguated elsewhere in the cleaning workflow.
-    # For clone_scope = "site", these site values are combined with species
-    # inside individual_kinship_by_pop_sp(), so identical site names in
-    # different species are analysed separately.
+    # Recover original site values by sample name. Site labels may have been
+    # temporarily disambiguated elsewhere in the workflow.
     original_site_match <- match(
       dms_obj$sample_names,
       orig_site_lookup$sample
     )
     if (anyNA(original_site_match)) {
       stop(
-        "Some samples could not be matched to their original site values during clone detection.",
+        paste0(
+          "Some samples could not be matched to their original site values ",
+          "during clone detection."
+        ),
         call. = FALSE
       )
     }
+
     site_values <- as.character(
       orig_site_lookup$site_original[original_site_match]
     )
 
     species_values[
-      is.na(species_values) | species_values == ""
+      is.na(species_values) | trimws(species_values) == ""
     ] <- "Unassigned_species"
     site_values[
-      is.na(site_values) | site_values == ""
+      is.na(site_values) | trimws(site_values) == ""
     ] <- "Unassigned_site"
 
+    normalise_kinship_matrix <- function(kin, sample_names) {
+      kin <- as.matrix(kin)
+
+      if (is.null(rownames(kin))) rownames(kin) <- sample_names
+      if (is.null(colnames(kin))) colnames(kin) <- sample_names
+
+      if (!all(sample_names %in% rownames(kin)) ||
+          !all(sample_names %in% colnames(kin))) {
+        stop(
+          "The kinship matrix sample names do not match dms$sample_names.",
+          call. = FALSE
+        )
+      }
+
+      kin <- kin[sample_names, sample_names, drop = FALSE]
+      kin[is.na(kin)] <- 0
+
+      # Account for minor numerical differences between matrix triangles.
+      kin <- pmax(kin, t(kin))
+      dimnames(kin) <- list(sample_names, sample_names)
+      kin
+    }
+
+    sample_names <- dms_obj$sample_names
+
     # Scope definitions:
-    #   site    = separate analysis for every species x site combination
-    #   species = separate analysis for every species across all sites
+    #   site:
+    #     1. estimate kinship once within each species using all its sites;
+    #     2. mask pairs from different sites before clone-group construction.
+    #   species:
+    #     estimate and use all within-species relationships across sites.
     if (clone_scope == "site") {
       if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
         stop(
           paste0(
-            "clone_scope = 'site' requires ",
-            "individual_kinship_by_pop_sp()."
+            "clone_scope = 'site' requires the revised ",
+            "individual_kinship_by_pop_sp() function."
           ),
           call. = FALSE
         )
       }
 
-      kin <- individual_kinship_by_pop_sp(
+      kin_result <- individual_kinship_by_pop_sp(
         dart_data = dms_obj,
         basedir = RandRbase,
         species = species,
@@ -324,8 +361,43 @@ run_dart_cleaning_loop <- function(
         sp = species_values,
         maf = maf_val,
         mis = locus_miss,
-        as_bigmat = TRUE
+        as_bigmat = TRUE,
+        return_reference = TRUE
       )
+
+      kin_reference <- normalise_kinship_matrix(
+        kin_result$species_reference,
+        sample_names
+      )
+      kin_decision <- normalise_kinship_matrix(
+        kin_result$species_site,
+        sample_names
+      )
+
+      comparison_mask <- kin_result$comparison_mask[
+        sample_names,
+        sample_names,
+        drop = FALSE
+      ]
+
+      # A critical validation: every eligible within-site value must be
+      # identical to its species-wide reference value.
+      within_site_difference <- kin_decision[comparison_mask] -
+        kin_reference[comparison_mask]
+
+      if (length(within_site_difference) > 0L &&
+          any(
+            abs(within_site_difference) > sqrt(.Machine$double.eps),
+            na.rm = TRUE
+          )) {
+        stop(
+          paste0(
+            "The site-masked matrix differs from the species-wide reference ",
+            "for at least one eligible within-site pair."
+          ),
+          call. = FALSE
+        )
+      }
     } else {
       if (!exists("individual_kinship_by_pop", mode = "function")) {
         stop(
@@ -337,7 +409,7 @@ run_dart_cleaning_loop <- function(
         )
       }
 
-      kin <- individual_kinship_by_pop(
+      kin_reference <- individual_kinship_by_pop(
         dart_data = dms_obj,
         basedir = RandRbase,
         species = species,
@@ -347,30 +419,28 @@ run_dart_cleaning_loop <- function(
         mis = locus_miss,
         as_bigmat = TRUE
       )
-    }
 
-    kin <- as.matrix(kin)
-    sample_names <- dms_obj$sample_names
-
-    if (is.null(rownames(kin))) rownames(kin) <- sample_names
-    if (is.null(colnames(kin))) colnames(kin) <- sample_names
-
-    if (!all(sample_names %in% rownames(kin)) ||
-        !all(sample_names %in% colnames(kin))) {
-      stop(
-        "The kinship matrix sample names do not match dms$sample_names.",
-        call. = FALSE
+      kin_reference <- normalise_kinship_matrix(
+        kin_reference,
+        sample_names
       )
+      kin_decision <- kin_reference
+
+      comparison_mask <- outer(
+        species_values,
+        species_values,
+        FUN = "=="
+      )
+      dimnames(comparison_mask) <- list(sample_names, sample_names)
     }
 
-    kin <- kin[sample_names, sample_names, drop = FALSE]
-    kin[is.na(kin)] <- 0
-
-    # Account for small numerical differences between matrix triangles.
-    kin <- pmax(kin, t(kin))
-    dimnames(kin) <- list(sample_names, sample_names)
-    diag(kin) <- 0
-    kin
+    list(
+      decision = kin_decision,
+      species_reference = kin_reference,
+      comparison_mask = comparison_mask,
+      species = species_values,
+      site = site_values
+    )
   }
 
   # ============================================================
@@ -389,11 +459,13 @@ run_dart_cleaning_loop <- function(
       ))
     }
 
-    kin <- calculate_clone_kinship(dms_obj)
+    kin_result <- calculate_clone_kinship(dms_obj)
+    kin <- kin_result$decision
+    kin_reference <- kin_result$species_reference
 
-    # Save the exact matrix used for this clone check before any samples are
-    # removed. RDS preserves sample names and is much faster and smaller than
-    # writing a dense matrix to CSV for large datasets.
+    # Save the exact clone-decision matrix before any samples are removed.
+    # For clone_scope = "site", this matrix contains species-wide estimates
+    # but pairs from different sites are masked to zero.
     if (isTRUE(save_kinship_matrices)) {
       stage_suffix <- if (identical(stage, "main")) {
         ""
@@ -419,6 +491,30 @@ run_dart_cleaning_loop <- function(
         compress = isTRUE(compress_kinship_matrices)
       )
       kinship_files <<- c(kinship_files, kinship_file)
+
+      # The unmasked species-wide reference is useful for checking whether
+      # high-kinship pairs also occur between sites. It is saved only for the
+      # site scope because, under the species scope, it is the same matrix as
+      # the clone-decision matrix.
+      if (clone_scope == "site" &&
+          isTRUE(save_reference_kinship_matrices)) {
+        reference_file <- file.path(
+          kinship_dir,
+          paste0(
+            "kinship_species_reference_for_site_round",
+            round_number,
+            stage_suffix,
+            ".rds"
+          )
+        )
+
+        saveRDS(
+          kin_reference,
+          file = reference_file,
+          compress = isTRUE(compress_kinship_matrices)
+        )
+        kinship_files <<- c(kinship_files, reference_file)
+      }
     }
 
     # Build an edge list directly from clone-like pairs. This avoids creating
@@ -1040,6 +1136,7 @@ run_dart_cleaning_loop <- function(
       clone_table_include_singletons = clone_table_include_singletons,
       write_round_summaries = write_round_summaries,
       save_kinship_matrices = save_kinship_matrices,
+      save_reference_kinship_matrices = save_reference_kinship_matrices,
       compress_kinship_matrices = compress_kinship_matrices,
       kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL
     )
