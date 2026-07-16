@@ -10,6 +10,7 @@ run_dart_cleaning_loop <- function(
     locus_miss,
     maf_val,
     clonal_threshold,
+    clone_scope = c("site", "species"), # "site" = within species × site; "species" = across sites within species
     remove_pops_less_than_n5 = "FALSE", # keep your original string style handling
     samples_per_pop_remove = 5,
     downsample = "FALSE",
@@ -17,6 +18,12 @@ run_dart_cleaning_loop <- function(
     output_dir = paste0(species, "/outputs_", site_col_name, "_", species_col_name, "/"),
     max_rounds = 20 # safety cap to prevent runaway loops
 ) {
+  
+  clone_scope <- tolower(trimws(as.character(clone_scope[1])))
+  if (!(clone_scope %in% c("site", "species"))) {
+    stop("clone_scope must be either 'site' or 'species'.", call. = FALSE)
+  }
+  message("Clone-removal scope: ", clone_scope)
   
   orig_site_names <- dms$meta$analyses[, site_col_name]
   orig_site_lookup <- data.frame(
@@ -78,21 +85,260 @@ run_dart_cleaning_loop <- function(
                 qc1=qc1, qc2=qc2, qc3=qc3))
   }
   
-  # helper: canonicalize site names when multiple species share site name (same logic as your loop)
+  # helper: canonicalize site names when the same site label occurs in multiple species
+  # This is retained for downstream site-based summaries and filtering.
   disambiguate_site_names <- function(dms_obj) {
-    for (g in 1:length(unique(dms_obj$meta$analyses[,site_col_name]))){
-      siteval <- unique(dms_obj$meta$analyses[,site_col_name])[g]
-      numz <- which(dms_obj$meta$analyses[,site_col_name] == siteval)
-      if (length(unique(dms_obj$meta$analyses[,species_col_name][numz]))>1){
-        for(t in 1:length(unique(dms_obj$meta$analyses[,species_col_name][numz]))){
-          numz2 <- which(dms_obj$meta$analyses[,species_col_name][numz]==unique(dms_obj$meta$analyses[,species_col_name][numz])[t])
-          dms_obj$meta$analyses[,site_col_name][numz][numz2] <-  paste0(dms_obj$meta$analyses[,site_col_name][numz][numz2],"_",t)
+    meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
+    site_values <- as.character(meta[[site_col_name]])
+    species_values <- as.character(meta[[species_col_name]])
+
+    for (siteval in unique(site_values)) {
+      if (is.na(siteval)) next
+      site_idx <- which(site_values == siteval)
+      site_species <- unique(species_values[site_idx])
+      site_species <- site_species[!is.na(site_species)]
+
+      if (length(site_species) > 1) {
+        for (i in seq_along(site_species)) {
+          target_idx <- site_idx[species_values[site_idx] == site_species[i]]
+          site_values[target_idx] <- paste0(siteval, "_", i)
         }
       }
     }
-    return(dms_obj)
+
+    dms_obj$meta$analyses[, site_col_name] <- site_values
+    dms_obj
   }
-  
+
+  # helper: calculate a kinship matrix using the requested clone-removal scope
+  calculate_clone_kinship <- function(dms_obj) {
+    meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
+
+    if (!"sample" %in% names(meta)) {
+      meta$sample <- dms_obj$sample_names
+    }
+
+    meta_match <- match(dms_obj$sample_names, meta$sample)
+    if (anyNA(meta_match)) {
+      stop(
+        "Some dms samples could not be matched to dms$meta$analyses$sample during clone detection.",
+        call. = FALSE
+      )
+    }
+    meta <- meta[meta_match, , drop = FALSE]
+
+    species_values <- as.character(meta[[species_col_name]])
+    site_values <- as.character(meta[[site_col_name]])
+
+    species_values[is.na(species_values) | species_values == ""] <- "Unassigned_species"
+    site_values[is.na(site_values) | site_values == ""] <- "Unassigned_site"
+
+    if (clone_scope == "site") {
+      # Site scope: compare samples only within each species × site combination.
+      if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
+        stop(
+          "clone_scope = 'site' requires individual_kinship_by_pop_sp().",
+          call. = FALSE
+        )
+      }
+
+      kin <- individual_kinship_by_pop_sp(
+        dart_data = dms_obj,
+        basedir = RandRbase,
+        species = species,
+        dataset = dataset,
+        pop = site_values,
+        sp = species_values,
+        maf = maf_val,
+        mis = locus_miss,
+        as_bigmat = TRUE
+      )
+    } else {
+      # Species scope: compare samples across all sites, but only within species.
+      if (!exists("individual_kinship_by_pop", mode = "function")) {
+        stop(
+          "clone_scope = 'species' requires individual_kinship_by_pop().",
+          call. = FALSE
+        )
+      }
+
+      kin <- individual_kinship_by_pop(
+        dms_obj,
+        RandRbase,
+        species,
+        dataset,
+        species_values,
+        maf = maf_val,
+        mis = locus_miss,
+        as_bigmat = TRUE
+      )
+    }
+
+    kin <- as.matrix(kin)
+    sample_names <- dms_obj$sample_names
+
+    if (is.null(rownames(kin))) rownames(kin) <- sample_names
+    if (is.null(colnames(kin))) colnames(kin) <- sample_names
+
+    if (!all(sample_names %in% rownames(kin)) ||
+        !all(sample_names %in% colnames(kin))) {
+      stop(
+        "The kinship matrix sample names do not match dms$sample_names.",
+        call. = FALSE
+      )
+    }
+
+    kin <- kin[sample_names, sample_names, drop = FALSE]
+    kin[is.na(kin)] <- 0
+
+    # Protect against small numerical asymmetries in the returned matrix.
+    kin <- pmax(kin, t(kin))
+    dimnames(kin) <- list(sample_names, sample_names)
+    diag(kin) <- 0
+    kin
+  }
+
+  # helper: identify connected clone groups and retain the sample with the fewest missing loci
+  filter_clones_once <- function(dms_obj, removal_source_obj, round_number, stage = "main") {
+    if (length(dms_obj$sample_names) <= 1) {
+      return(list(
+        dms = dms_obj,
+        removed = 0L,
+        removed_samples = character(),
+        assignments = data.frame(),
+        kinship = NULL
+      ))
+    }
+
+    kin <- calculate_clone_kinship(dms_obj)
+
+    clone_adj <- kin >= clonal_threshold
+    clone_adj[is.na(clone_adj)] <- FALSE
+    diag(clone_adj) <- FALSE
+
+    network <- igraph::graph_from_adjacency_matrix(
+      clone_adj * 1L,
+      mode = "undirected",
+      diag = FALSE,
+      weighted = NULL
+    )
+
+    clone_membership <- igraph::components(network)$membership
+    clones <- data.frame(
+      sample = names(clone_membership),
+      genet = as.integer(unname(clone_membership)),
+      stringsAsFactors = FALSE
+    )
+
+    meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
+    if (!"sample" %in% names(meta)) meta$sample <- dms_obj$sample_names
+    meta <- meta[match(clones$sample, meta$sample), , drop = FALSE]
+
+    missing_counts <- rowSums(is.na(dms_obj$gt))
+    names(missing_counts) <- dms_obj$sample_names
+
+    clones_out <- data.frame(
+      genet = clones$genet,
+      sample = clones$sample,
+      n_missing_loci = as.integer(missing_counts[clones$sample]),
+      stringsAsFactors = FALSE
+    )
+
+    metadata_columns <- intersect(
+      c("lat", "long", site_col_name, species_col_name),
+      names(meta)
+    )
+    if (length(metadata_columns) > 0) {
+      clones_out <- cbind(
+        clones_out,
+        meta[, metadata_columns, drop = FALSE]
+      )
+    }
+
+    group_sizes <- table(clones_out$genet)
+    clones_out$group_size <- as.integer(group_sizes[as.character(clones_out$genet)])
+    clones_out$clone_detected <- clones_out$group_size > 1
+    clones_out$retained <- TRUE
+
+    clone_genets <- as.integer(names(group_sizes[group_sizes > 1]))
+
+    for (genet_id in clone_genets) {
+      group_idx <- which(clones_out$genet == genet_id)
+      group_order <- order(
+        clones_out$n_missing_loci[group_idx],
+        clones_out$sample[group_idx]
+      )
+      retained_idx <- group_idx[group_order[1]]
+      clones_out$retained[group_idx] <- FALSE
+      clones_out$retained[retained_idx] <- TRUE
+    }
+
+    clones_out$clone_scope <- clone_scope
+    clones_out$clone_group <- if (clone_scope == "site") {
+      paste(
+        clones_out[[species_col_name]],
+        clones_out[[site_col_name]],
+        sep = "__"
+      )
+    } else {
+      as.character(clones_out[[species_col_name]])
+    }
+    clones_out$removal_reason <- ifelse(
+      clones_out$clone_detected & !clones_out$retained,
+      paste0("clone_removed_", clone_scope),
+      ifelse(clones_out$clone_detected, "clone_representative_retained", "not_a_clone")
+    )
+
+    clones_out <- clones_out[order(clones_out$genet, !clones_out$retained,
+                                   clones_out$n_missing_loci, clones_out$sample), ]
+
+    stage_suffix <- if (identical(stage, "main")) "" else paste0("_", stage)
+    output_file <- file.path(
+      tables_dir,
+      paste0(
+        "PLINK_clones_", clone_scope,
+        "_round", round_number,
+        stage_suffix,
+        ".xlsx"
+      )
+    )
+
+    openxlsx::write.xlsx(
+      clones_out,
+      file = output_file,
+      asTable = FALSE,
+      overwrite = TRUE
+    )
+
+    samples_to_keep <- clones_out$sample[clones_out$retained]
+    removed_samples <- clones_out$sample[!clones_out$retained]
+
+    filtered_obj <- remove.by.list(removal_source_obj, samples_to_keep)
+    removed_n <- length(dms_obj$sample_names) - length(filtered_obj$sample_names)
+
+    if (removed_n < 0) {
+      stop(
+        "Clone filtering increased the number of samples, indicating unexpected remove.by.list behaviour.",
+        call. = FALSE
+      )
+    }
+
+    if (removed_n != length(removed_samples)) {
+      warning(
+        "The number removed by remove.by.list (", removed_n,
+        ") differs from the clone-decision table (", length(removed_samples), ")."
+      )
+    }
+
+    list(
+      dms = filtered_obj,
+      removed = as.integer(removed_n),
+      removed_samples = removed_samples,
+      assignments = clones_out,
+      kinship = kin
+    )
+  }
+
   # main loop
   while (TRUE) {
     round <- round + 1
@@ -144,75 +390,64 @@ run_dart_cleaning_loop <- function(
     # -------------------------
     # 2) Clone detection & removal
     # -------------------------
-    # fix site names where needed
     dms <- disambiguate_site_names(dms)
-    
-    # kinship -> identify clones (as per your code)
-    kin <- individual_kinship_by_pop_sp(dart_data = dms, basedir = RandRbase, species = species, dataset = dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
-    kin[is.na(kin)] <- 0
-    kin3 <- ifelse(kin < clonal_threshold, 0, 1)
-    
-    # adjacency network & clustering
-    network <- igraph::graph_from_adjacency_matrix(kin3, mode="undirected", diag=F, weighted=T)
-    ceb <- igraph::cluster_fast_greedy(network)
-    clones <- as.data.frame(cbind(genet = ceb$membership, sample = ceb$names), stringsAsFactors = FALSE)
-    clones_out <- merge(clones, dms$meta$analyses[, c("sample", "lat", "long", site_col_name, species_col_name)], by="sample")
-    clones_out <- clones_out[order(as.numeric(clones_out$genet)), ]
-    clones_out$genet <- as.numeric(clones_out$genet)
-    
-    # write clones table for this round
-    openxlsx::write.xlsx(clones_out,
-                         file = file.path(tables_dir, paste0("PLINK_clones_round", round, ".xlsx")),
-                         asTable = FALSE, overwrite = TRUE)
-    
-    # identify genets with multiple ramets
-    clonenum <- which(duplicated(clones_out$genet) == TRUE)
-    clonenum2 <- unique(clones_out$genet[clonenum])
-    
-    if (length(clonenum2) == 0) {
-      message("No genets with multiple ramets detected (round ", round, ").")
-      log_df <- rbind(log_df, data.frame(round=round, step="clones", removed=0))
+
+    clone_result <- filter_clones_once(
+      dms_obj = dms,
+      removal_source_obj = dm,
+      round_number = round,
+      stage = "main"
+    )
+
+    dms <- clone_result$dms
+    removed_here <- clone_result$removed
+    removed_this_round_total <- removed_this_round_total + removed_here
+
+    log_df <- rbind(
+      log_df,
+      data.frame(
+        round = round,
+        step = paste0("clones_", clone_scope),
+        removed = removed_here,
+        stringsAsFactors = FALSE
+      )
+    )
+
+    if (removed_here > 0) {
+      message(
+        "Removed ", removed_here,
+        " clone samples using the '", clone_scope,
+        "' scope (round ", round, ")."
+      )
     } else {
-      keepsamps <- c()
-      for (w in seq_along(clonenum2)) {
-        samps <- clones_out$sample[which(clones_out$genet == clonenum2[w])]
-        num_missing <- data.frame(NSWNum = samps, sumNA = NA, stringsAsFactors = FALSE)
-        for (s in seq_along(samps)) {
-          num <- which(dms$sample_names == samps[s])
-          num_missing$sumNA[s] <- sum(is.na(dms$gt[num, ]) == TRUE)
-        }
-        num_missing <- num_missing[order(num_missing$sumNA), ]
-        keepsamps[w] <- num_missing$NSWNum[1]
-      }
-      
-      allgenets <- 1:max(clones_out$genet)
-      noclonegenets <- which(!allgenets %in% clonenum2)
-      noclonesamps <- clones_out$sample[which(clones_out$genet %in% noclonegenets)]
-      
-      SampstoKeep <- c(keepsamps, noclonesamps) # final keep list
-      dms2 <- remove.by.list(dm, SampstoKeep)
-      
-      removed_here <- length(dms$sample_names) - length(dms2$sample_names)
-      if (removed_here < 0) removed_here <- 0 # safety
-      removed_this_round_total <- removed_this_round_total + removed_here
-      log_df <- rbind(log_df, data.frame(round=round, step="clones", removed=removed_here))
-      message("Removed ", removed_here, " samples as clones/ramet selection (round ", round, ").")
-      
-      dms <- dms2
-      # update treatment, site summary etc.
-      treatment <- dms$treatment
-      dms <- disambiguate_site_names(dms)
-      unfiltered_site_summary <- dms$meta$analyses %>% as.data.frame() %>%
-        group_by(!!rlang::sym(species_col_name), !!rlang::sym(site_col_name)) %>%
-        dplyr::summarize(n_unfiltered = sum(n()),
-                         lat = mean(as.numeric(lat), na.rm=TRUE),
-                         long = mean(as.numeric(long),na.rm=TRUE),
-                         .groups = 'drop') %>%
-        filter(n_unfiltered > 0) %>%
-        as.data.frame()
-      unfiltered_site_summary <- unfiltered_site_summary[rev(order(unfiltered_site_summary$lat)),]
+      message(
+        "No clone samples detected using the '", clone_scope,
+        "' scope (round ", round, ")."
+      )
     }
-    
+
+    treatment <- dms$treatment
+    dms <- disambiguate_site_names(dms)
+
+    unfiltered_site_summary <- dms$meta$analyses %>%
+      as.data.frame() %>%
+      group_by(
+        !!rlang::sym(species_col_name),
+        !!rlang::sym(site_col_name)
+      ) %>%
+      dplyr::summarize(
+        n_unfiltered = dplyr::n(),
+        lat = mean(as.numeric(lat), na.rm = TRUE),
+        long = mean(as.numeric(long), na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      filter(n_unfiltered > 0) %>%
+      as.data.frame()
+
+    unfiltered_site_summary <- unfiltered_site_summary[
+      rev(order(unfiltered_site_summary$lat)),
+    ]
+
     # Reanalyse after clone removal
     re_res2 <- reanalyse(d1, dms, paste0(round, "b"))
     d1 <- re_res2$d1
@@ -311,50 +546,43 @@ run_dart_cleaning_loop <- function(
     dm <- re_res3$dm
     dms <- re_res3$dms
     
-    # Final clone re-check (as in your repeated script, you ran clones again)
+    # Final clone re-check using the same selected scope
     dms <- disambiguate_site_names(dms)
-    kin_final <- individual_kinship_by_pop_sp(dms, RandRbase, species, dataset, pop = dms$meta$analyses[,site_col_name], sp = dms$meta$analyses[,species_col_name], maf=maf_val, mis=locus_miss, as_bigmat=TRUE)
-    kin_final[is.na(kin_final)] <- 0
-    kin3_final <- ifelse(kin_final < clonal_threshold, 0, 1)
-    network_final <- igraph::graph_from_adjacency_matrix(kin3_final, mode="undirected", diag=F, weighted=T)
-    ceb_final <- igraph::cluster_fast_greedy(network_final)
-    clones_final <- as.data.frame(cbind(genet = ceb_final$membership, sample = ceb_final$names), stringsAsFactors = FALSE)
-    clones_out_final <- merge(clones_final, dms$meta$analyses[, c("sample","lat","long",site_col_name,species_col_name)], by="sample")
-    clones_out_final <- clones_out_final[order(as.numeric(clones_out_final$genet)),]
-    clones_out_final$genet <- as.numeric(clones_out_final$genet)
-    openxlsx::write.xlsx(clones_out_final, file = file.path(tables_dir, paste0("PLINK_clones_round", round, "_finalcheck.xlsx")), asTable = FALSE, overwrite = TRUE)
-    
-    clonenum_final <- which(duplicated(clones_out_final$genet) == TRUE)
-    clonenum2_final <- unique(clones_out_final$genet[clonenum_final])
-    if (length(clonenum2_final) > 0) {
-      keepsamps_final <- c()
-      for (w in seq_along(clonenum2_final)) {
-        samps <- clones_out_final$sample[which(clones_out_final$genet == clonenum2_final[w])]
-        num_missing <- data.frame(NSWNum = samps, sumNA = NA, stringsAsFactors = FALSE)
-        for (s in seq_along(samps)) {
-          num <- which(dms$sample_names == samps[s])
-          num_missing$sumNA[s] <- sum(is.na(dms$gt[num, ]) == TRUE)
-        }
-        num_missing <- num_missing[order(num_missing$sumNA), ]
-        keepsamps_final[w] <- num_missing$NSWNum[1]
-      }
-      allgenets <- 1:max(clones_out_final$genet)
-      noclonegenets <- which(!allgenets %in% clonenum2_final)
-      noclonesamps <- clones_out_final$sample[which(clones_out_final$genet %in% noclonegenets)]
-      SampstoKeep_final <- c(keepsamps_final, noclonesamps)
-      dms2_final <- remove.by.list(dm, SampstoKeep_final)
-      
-      removed_final <- length(dms$sample_names) - length(dms2_final$sample_names)
-      if (removed_final < 0) removed_final <- 0
-      removed_this_round_total <- removed_this_round_total + removed_final
-      log_df <- rbind(log_df, data.frame(round=round, step="clones_finalcheck", removed=removed_final))
-      dms <- dms2_final
-      message("Final clone-check removed ", removed_final, " samples (round ", round, ").")
+
+    clone_final_result <- filter_clones_once(
+      dms_obj = dms,
+      removal_source_obj = dm,
+      round_number = round,
+      stage = "finalcheck"
+    )
+
+    dms <- clone_final_result$dms
+    removed_final <- clone_final_result$removed
+    removed_this_round_total <- removed_this_round_total + removed_final
+
+    log_df <- rbind(
+      log_df,
+      data.frame(
+        round = round,
+        step = paste0("clones_", clone_scope, "_finalcheck"),
+        removed = removed_final,
+        stringsAsFactors = FALSE
+      )
+    )
+
+    if (removed_final > 0) {
+      message(
+        "Final clone check removed ", removed_final,
+        " samples using the '", clone_scope,
+        "' scope (round ", round, ")."
+      )
     } else {
-      log_df <- rbind(log_df, data.frame(round=round, step="clones_finalcheck", removed=0))
-      message("No clones in final check (round ", round, ").")
+      message(
+        "No clones detected in the final '", clone_scope,
+        "' check (round ", round, ")."
+      )
     }
-    
+
     # Write a small round summary file
     round_summary <- data.frame(
       round = round,
@@ -381,26 +609,30 @@ run_dart_cleaning_loop <- function(
   # ==================================
   # RESTORE ORIGINAL SITE NAMES
   # ==================================
-  message("Restoring original site names at final output…")
-  
-  # merge original site names back into final dms object
-  restored <- merge(
-    dms$meta$analyses,
-    orig_site_lookup,
-    by = "sample",
-    all.x = TRUE,
-    sort = FALSE
-  )
-  
-  # replace modified disambiguated names with original
-  dms$meta$analyses[, site_col_name] <- restored$site_original
-  
-  
-  
+  message("Restoring original site names at final output...")
+
+  final_meta <- as.data.frame(dms$meta$analyses, stringsAsFactors = FALSE)
+  if (!"sample" %in% names(final_meta)) final_meta$sample <- dms$sample_names
+
+  site_match <- match(final_meta$sample, orig_site_lookup$sample)
+  if (anyNA(site_match)) {
+    warning(
+      "Some final samples could not be matched to their original site names: ",
+      paste(final_meta$sample[is.na(site_match)], collapse = ", ")
+    )
+  }
+
+  dms$meta$analyses[, site_col_name] <-
+    orig_site_lookup$site_original[site_match]
+
   # final outputs
-  final_list <- list(dms = dms, d1 = d1, rounds = round, log = log_df, treatment = treatment)
+  final_list <- list(
+    dms = dms,
+    d1 = d1,
+    rounds = round,
+    log = log_df,
+    treatment = treatment,
+    clone_scope = clone_scope
+  )
   return(final_list)
 }
-
-
-
