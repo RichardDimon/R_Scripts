@@ -272,14 +272,14 @@ run_dart_cleaning_loop <- function(
     ] <- "Unassigned_site"
 
     if (clone_scope == "site") {
-      if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
+      if (!exists("individual_kinship_by_pop", mode = "function")) {
         stop(
-          "clone_scope = 'site' requires individual_kinship_by_pop_sp().",
+          "clone_scope = 'site' requires individual_kinship_by_pop().",
           call. = FALSE
         )
       }
 
-      kin <- individual_kinship_by_pop_sp(
+      kin <- individual_kinship_by_pop(
         dart_data = dms_obj,
         basedir = RandRbase,
         species = species,
@@ -291,14 +291,14 @@ run_dart_cleaning_loop <- function(
         as_bigmat = TRUE
       )
     } else {
-      if (!exists("individual_kinship_by_pop", mode = "function")) {
+      if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
         stop(
           "clone_scope = 'species' requires individual_kinship_by_pop().",
           call. = FALSE
         )
       }
 
-      kin <- individual_kinship_by_pop(
+      kin <- individual_kinship_by_pop_sp(
         dms_obj,
         RandRbase,
         species,
