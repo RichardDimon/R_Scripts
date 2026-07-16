@@ -285,7 +285,6 @@ run_dart_cleaning_loop <- function(
         species = species,
         dataset = dataset,
         pop = site_values,
-        sp = species_values,
         maf = maf_val,
         mis = locus_miss,
         as_bigmat = TRUE
@@ -304,6 +303,7 @@ run_dart_cleaning_loop <- function(
         species,
         dataset,
         species_values,
+        sp = species_values,
         maf = maf_val,
         mis = locus_miss,
         as_bigmat = TRUE
