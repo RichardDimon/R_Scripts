@@ -22,7 +22,9 @@ run_dart_cleaning_loop <- function(
     write_intermediate_qc = FALSE,
     write_clone_tables = TRUE,
     clone_table_include_singletons = TRUE,
-    write_round_summaries = TRUE
+    write_round_summaries = TRUE,
+    save_kinship_matrices = TRUE,
+    compress_kinship_matrices = FALSE
 ) {
 
   # ============================================================
@@ -42,7 +44,10 @@ run_dart_cleaning_loop <- function(
     "TRUE"
   )
 
-  message("Clone-removal scope: ", clone_scope)
+  message(
+    "Clone-removal scope: ",
+    if (clone_scope == "site") "site (separate species x site groups)" else "species"
+  )
   message("Intermediate QC reports: ", write_intermediate_qc)
 
   # ============================================================
@@ -71,11 +76,17 @@ run_dart_cleaning_loop <- function(
   # ============================================================
   # Output folders
   # ============================================================
-  plots_dir  <- file.path(output_dir, "plots")
-  tables_dir <- file.path(output_dir, "tables")
-  rfiles_dir <- file.path(output_dir, "r_files")
+  plots_dir   <- file.path(output_dir, "plots")
+  tables_dir  <- file.path(output_dir, "tables")
+  rfiles_dir  <- file.path(output_dir, "r_files")
+  kinship_dir <- file.path(rfiles_dir, "kinship_matrices")
 
-  for (p in c(plots_dir, tables_dir, rfiles_dir)) {
+  output_paths <- c(plots_dir, tables_dir, rfiles_dir)
+  if (isTRUE(save_kinship_matrices)) {
+    output_paths <- c(output_paths, kinship_dir)
+  }
+
+  for (p in output_paths) {
     if (!dir.exists(p)) dir.create(p, recursive = TRUE)
   }
 
@@ -92,6 +103,7 @@ run_dart_cleaning_loop <- function(
 
   log_rows <- list()
   log_index <- 0L
+  kinship_files <- character()
 
   add_log <- function(round_number, step_name, removed_number) {
     log_index <<- log_index + 1L
@@ -262,7 +274,25 @@ run_dart_cleaning_loop <- function(
     meta <- meta[meta_match, , drop = FALSE]
 
     species_values <- as.character(meta[[species_col_name]])
-    site_values <- as.character(meta[[site_col_name]])
+
+    # Always recover the original site values by sample name. Site labels may
+    # have been temporarily disambiguated elsewhere in the cleaning workflow.
+    # For clone_scope = "site", these site values are combined with species
+    # inside individual_kinship_by_pop_sp(), so identical site names in
+    # different species are analysed separately.
+    original_site_match <- match(
+      dms_obj$sample_names,
+      orig_site_lookup$sample
+    )
+    if (anyNA(original_site_match)) {
+      stop(
+        "Some samples could not be matched to their original site values during clone detection.",
+        call. = FALSE
+      )
+    }
+    site_values <- as.character(
+      orig_site_lookup$site_original[original_site_match]
+    )
 
     species_values[
       is.na(species_values) | species_values == ""
@@ -271,10 +301,38 @@ run_dart_cleaning_loop <- function(
       is.na(site_values) | site_values == ""
     ] <- "Unassigned_site"
 
+    # Scope definitions:
+    #   site    = separate analysis for every species x site combination
+    #   species = separate analysis for every species across all sites
     if (clone_scope == "site") {
+      if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
+        stop(
+          paste0(
+            "clone_scope = 'site' requires ",
+            "individual_kinship_by_pop_sp()."
+          ),
+          call. = FALSE
+        )
+      }
+
+      kin <- individual_kinship_by_pop_sp(
+        dart_data = dms_obj,
+        basedir = RandRbase,
+        species = species,
+        dataset = dataset,
+        pop = site_values,
+        sp = species_values,
+        maf = maf_val,
+        mis = locus_miss,
+        as_bigmat = TRUE
+      )
+    } else {
       if (!exists("individual_kinship_by_pop", mode = "function")) {
         stop(
-          "clone_scope = 'site' requires individual_kinship_by_pop().",
+          paste0(
+            "clone_scope = 'species' requires ",
+            "individual_kinship_by_pop()."
+          ),
           call. = FALSE
         )
       }
@@ -284,26 +342,7 @@ run_dart_cleaning_loop <- function(
         basedir = RandRbase,
         species = species,
         dataset = dataset,
-        pop = site_values,
-        maf = maf_val,
-        mis = locus_miss,
-        as_bigmat = TRUE
-      )
-    } else {
-      if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
-        stop(
-          "clone_scope = 'species' requires individual_kinship_by_pop().",
-          call. = FALSE
-        )
-      }
-
-      kin <- individual_kinship_by_pop_sp(
-        dms_obj,
-        RandRbase,
-        species,
-        dataset,
-        species_values,
-        sp = species_values,
+        pop = species_values,
         maf = maf_val,
         mis = locus_miss,
         as_bigmat = TRUE
@@ -351,6 +390,36 @@ run_dart_cleaning_loop <- function(
     }
 
     kin <- calculate_clone_kinship(dms_obj)
+
+    # Save the exact matrix used for this clone check before any samples are
+    # removed. RDS preserves sample names and is much faster and smaller than
+    # writing a dense matrix to CSV for large datasets.
+    if (isTRUE(save_kinship_matrices)) {
+      stage_suffix <- if (identical(stage, "main")) {
+        ""
+      } else {
+        paste0("_", stage)
+      }
+
+      kinship_file <- file.path(
+        kinship_dir,
+        paste0(
+          "kinship_",
+          clone_scope,
+          "_round",
+          round_number,
+          stage_suffix,
+          ".rds"
+        )
+      )
+
+      saveRDS(
+        kin,
+        file = kinship_file,
+        compress = isTRUE(compress_kinship_matrices)
+      )
+      kinship_files <<- c(kinship_files, kinship_file)
+    }
 
     # Build an edge list directly from clone-like pairs. This avoids creating
     # an additional dense adjacency matrix and is much lighter for large data.
@@ -440,9 +509,13 @@ run_dart_cleaning_loop <- function(
 
     clones_out$clone_scope <- clone_scope
     clones_out$clone_group <- if (clone_scope == "site") {
+      site_match <- match(
+        clones_out$sample,
+        orig_site_lookup$sample
+      )
       paste(
-        clones_out[[species_col_name]],
-        clones_out[[site_col_name]],
+        as.character(clones_out[[species_col_name]]),
+        as.character(orig_site_lookup$site_original[site_match]),
         sep = "__"
       )
     } else {
@@ -534,8 +607,8 @@ run_dart_cleaning_loop <- function(
       )
     }
 
-    # Do not return the dense kinship matrix: retaining it can consume a large
-    # amount of memory and it is not used by the outer loop.
+    # Do not retain the dense kinship matrix in memory after this check.
+    # When requested, it has already been saved to disk above.
     list(
       dms = filtered_obj,
       removed = as.integer(removed_n),
@@ -960,11 +1033,15 @@ run_dart_cleaning_loop <- function(
     log = log_df,
     treatment = treatment,
     clone_scope = clone_scope,
+    kinship_files = unique(kinship_files),
     optimisation_settings = list(
       write_intermediate_qc = write_intermediate_qc,
       write_clone_tables = write_clone_tables,
       clone_table_include_singletons = clone_table_include_singletons,
-      write_round_summaries = write_round_summaries
+      write_round_summaries = write_round_summaries,
+      save_kinship_matrices = save_kinship_matrices,
+      compress_kinship_matrices = compress_kinship_matrices,
+      kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL
     )
   )
 }
