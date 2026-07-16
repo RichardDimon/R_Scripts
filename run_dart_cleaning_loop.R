@@ -1,6 +1,6 @@
 run_dart_cleaning_loop <- function(
-    d1,                     # initial DArT object (your d1)
-    dms,                    # initial dms (dms2 from your setup)
+    d1,                     # initial DArT object
+    dms,                    # initial merged and site-filtered DArT object
     RandRbase,
     species,
     dataset,
@@ -10,83 +10,212 @@ run_dart_cleaning_loop <- function(
     locus_miss,
     maf_val,
     clonal_threshold,
-    clone_scope = c("site", "species"), # "site" = within species × site; "species" = across sites within species
-    remove_pops_less_than_n5 = "FALSE", # keep your original string style handling
+    clone_scope = c("site", "species"),
+    remove_pops_less_than_n5 = "FALSE",
     samples_per_pop_remove = 5,
     downsample = "FALSE",
     samples_per_pop_downsample = 5,
-    output_dir = paste0(species, "/outputs_", site_col_name, "_", species_col_name, "/"),
-    max_rounds = 20 # safety cap to prevent runaway loops
+    output_dir = paste0(
+      species, "/outputs_", site_col_name, "_", species_col_name, "/"
+    ),
+    max_rounds = 20,
+    write_intermediate_qc = FALSE,
+    write_clone_tables = TRUE,
+    clone_table_include_singletons = TRUE,
+    write_round_summaries = TRUE
 ) {
-  
+
+  # ============================================================
+  # Validate options
+  # ============================================================
   clone_scope <- tolower(trimws(as.character(clone_scope[1])))
   if (!(clone_scope %in% c("site", "species"))) {
     stop("clone_scope must be either 'site' or 'species'.", call. = FALSE)
   }
+
+  remove_pops_flag <- identical(
+    toupper(trimws(as.character(remove_pops_less_than_n5[1]))),
+    "TRUE"
+  )
+  downsample_flag <- identical(
+    toupper(trimws(as.character(downsample[1]))),
+    "TRUE"
+  )
+
   message("Clone-removal scope: ", clone_scope)
-  
-  orig_site_names <- dms$meta$analyses[, site_col_name]
+  message("Intermediate QC reports: ", write_intermediate_qc)
+
+  # ============================================================
+  # Preserve original site names for the final object
+  # ============================================================
+  initial_meta <- as.data.frame(dms$meta$analyses, stringsAsFactors = FALSE)
+  if (!"sample" %in% names(initial_meta)) {
+    initial_meta$sample <- dms$sample_names
+  }
+
+  initial_match <- match(dms$sample_names, initial_meta$sample)
+  if (anyNA(initial_match)) {
+    stop(
+      "Some starting dms samples could not be matched to metadata.",
+      call. = FALSE
+    )
+  }
+  initial_meta <- initial_meta[initial_match, , drop = FALSE]
+
   orig_site_lookup <- data.frame(
     sample = dms$sample_names,
-    site_original = orig_site_names,
+    site_original = initial_meta[[site_col_name]],
     stringsAsFactors = FALSE
   )
-  
-  
-  
-  # helper: ensure output subdirs exist
+
+  # ============================================================
+  # Output folders
+  # ============================================================
   plots_dir  <- file.path(output_dir, "plots")
   tables_dir <- file.path(output_dir, "tables")
   rfiles_dir <- file.path(output_dir, "r_files")
-  for (p in c(plots_dir, tables_dir, rfiles_dir)){
+
+  for (p in c(plots_dir, tables_dir, rfiles_dir)) {
     if (!dir.exists(p)) dir.create(p, recursive = TRUE)
   }
-  
-  round <- 0
+
+  # ============================================================
+  # State
+  # ============================================================
+  round <- 0L
   prev_n <- length(dms$sample_names)
-  log_df <- data.frame(round = integer(),
-                       step = character(),
-                       removed = integer(),
-                       stringsAsFactors = FALSE)
-  
-  # small helper to run reanalysis (d1 -> d2 -> d3 -> m1 -> dm -> dmsnew)
+  treatment <- dms$treatment
+
+  # A final clone removal occurs after the last reanalysis in a round.
+  # This flag ensures that the next round reanalyses the reduced sample set.
+  needs_reanalysis <- FALSE
+
+  log_rows <- list()
+  log_index <- 0L
+
+  add_log <- function(round_number, step_name, removed_number) {
+    log_index <<- log_index + 1L
+    log_rows[[log_index]] <<- data.frame(
+      round = as.integer(round_number),
+      step = as.character(step_name),
+      removed = as.integer(removed_number),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  # ============================================================
+  # Rebuild loci and metadata after the sample set changes
+  # ============================================================
   reanalyse <- function(d1_current, dms_current, round_tag) {
-    # remove from d1 any samples present in dms_current (this matches your remove.by.list usage)
-    d1old <- d1_current
+
+    # remove.by.list() is used as a keep-list function in this workflow.
     d1_new <- remove.by.list(d1_current, dms_current$sample_names)
-    qc1 <- report.dart.qc.stats.RD(d1_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
-    d2_new <- remove.poor.quality.snps(d1_new, min_repro=0.96, max_missing=locus_miss)
-    qc2 <- report.dart.qc.stats.RD(d2_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
-    d3_new <- sample.one.snp.per.locus.random(d2_new, seed=214241)
+
+    if (isTRUE(write_intermediate_qc)) {
+      qc1 <- report.dart.qc.stats.RD(
+        d1_new,
+        RandRbase,
+        species,
+        dataset,
+        threshold_missing_loci = sample_miss
+      )
+    } else {
+      qc1 <- NULL
+    }
+
+    d2_new <- remove.poor.quality.snps(
+      d1_new,
+      min_repro = 0.96,
+      max_missing = locus_miss
+    )
+
+    if (isTRUE(write_intermediate_qc)) {
+      qc2 <- report.dart.qc.stats.RD(
+        d2_new,
+        RandRbase,
+        species,
+        dataset,
+        threshold_missing_loci = sample_miss
+      )
+    } else {
+      qc2 <- NULL
+    }
+
+    d3_new <- sample.one.snp.per.locus.random(d2_new, seed = 214241)
     d3_new$treatment <- paste0(d3_new$treatment, "_rep", round_tag)
-    qc3 <- report.dart.qc.stats.RD(d3_new, RandRbase, species, dataset, threshold_missing_loci = sample_miss)
-    
-    # meta
-    m1 <- read.meta.data.full.analyses.df(d3_new, RandRbase, species, dataset)
-    m1$analyses[,site_col_name] <- gsub(" ", "_", m1$analyses[,site_col_name])
+
+    if (isTRUE(write_intermediate_qc)) {
+      qc3 <- report.dart.qc.stats.RD(
+        d3_new,
+        RandRbase,
+        species,
+        dataset,
+        threshold_missing_loci = sample_miss
+      )
+    } else {
+      qc3 <- NULL
+    }
+
+    # Read and attach metadata only when a reanalysis is genuinely required.
+    m1 <- read.meta.data.full.analyses.df(
+      d3_new,
+      RandRbase,
+      species,
+      dataset
+    )
+
+    m1$analyses[, site_col_name] <- gsub(
+      " ",
+      "_",
+      m1$analyses[, site_col_name]
+    )
+
     orderbylat <- rev(order(m1$lat))
     m1$lat <- m1$lat[orderbylat]
     m1$sample_names <- m1$sample_names[orderbylat]
     m1$site <- m1$site[orderbylat]
     m1$long <- m1$long[orderbylat]
-    m1$analyses <- m1$analyses[orderbylat,]
-    # write any missing meta matches (as in your original code)
-    write.table(data.frame(sample=d3_new$sample_names[!(d3_new$sample_names %in% m1$sample_names)]),
-                file = file.path(tables_dir, "samples_in_dart_not_in_meta.tsv"),
-                sep = "\t", row.names = FALSE)
-    
+    m1$analyses <- m1$analyses[orderbylat, , drop = FALSE]
+
+    missing_meta_samples <- d3_new$sample_names[
+      !(d3_new$sample_names %in% m1$sample_names)
+    ]
+
+    # Avoid repeatedly writing an empty file.
+    if (length(missing_meta_samples) > 0L) {
+      write.table(
+        data.frame(
+          sample = missing_meta_samples,
+          stringsAsFactors = FALSE
+        ),
+        file = file.path(tables_dir, "samples_in_dart_not_in_meta.tsv"),
+        sep = "\t",
+        row.names = FALSE
+      )
+    }
+
     dm_new <- dart.meta.data.merge(d3_new, m1)
-    
-    # remove samples that are NA for site variable
-    samples_with_site_variable <- dm_new$sample_names[!is.na(dm_new$meta$analyses[,site_col_name])]
-    dmsnew <- remove.by.list(dm_new, samples_with_site_variable)
-    
-    return(list(d1=d1_new, d2=d2_new, d3=d3_new, dm=dm_new, dms=dmsnew,
-                qc1=qc1, qc2=qc2, qc3=qc3))
+
+    samples_with_site_variable <- dm_new$sample_names[
+      !is.na(dm_new$meta$analyses[, site_col_name])
+    ]
+    dms_new <- remove.by.list(dm_new, samples_with_site_variable)
+
+    list(
+      d1 = d1_new,
+      d2 = d2_new,
+      d3 = d3_new,
+      dm = dm_new,
+      dms = dms_new,
+      qc1 = qc1,
+      qc2 = qc2,
+      qc3 = qc3
+    )
   }
-  
-  # helper: canonicalize site names when the same site label occurs in multiple species
-  # This is retained for downstream site-based summaries and filtering.
+
+  # ============================================================
+  # Make site labels unique where one label occurs in >1 species
+  # ============================================================
   disambiguate_site_names <- function(dms_obj) {
     meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
     site_values <- as.character(meta[[site_col_name]])
@@ -94,13 +223,16 @@ run_dart_cleaning_loop <- function(
 
     for (siteval in unique(site_values)) {
       if (is.na(siteval)) next
+
       site_idx <- which(site_values == siteval)
       site_species <- unique(species_values[site_idx])
       site_species <- site_species[!is.na(site_species)]
 
-      if (length(site_species) > 1) {
+      if (length(site_species) > 1L) {
         for (i in seq_along(site_species)) {
-          target_idx <- site_idx[species_values[site_idx] == site_species[i]]
+          target_idx <- site_idx[
+            species_values[site_idx] == site_species[i]
+          ]
           site_values[target_idx] <- paste0(siteval, "_", i)
         }
       }
@@ -110,18 +242,20 @@ run_dart_cleaning_loop <- function(
     dms_obj
   }
 
-  # helper: calculate a kinship matrix using the requested clone-removal scope
+  # ============================================================
+  # Calculate clone kinship using the selected scope
+  # ============================================================
   calculate_clone_kinship <- function(dms_obj) {
     meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
-
-    if (!"sample" %in% names(meta)) {
-      meta$sample <- dms_obj$sample_names
-    }
+    if (!"sample" %in% names(meta)) meta$sample <- dms_obj$sample_names
 
     meta_match <- match(dms_obj$sample_names, meta$sample)
     if (anyNA(meta_match)) {
       stop(
-        "Some dms samples could not be matched to dms$meta$analyses$sample during clone detection.",
+        paste0(
+          "Some dms samples could not be matched to metadata during ",
+          "clone detection."
+        ),
         call. = FALSE
       )
     }
@@ -130,11 +264,14 @@ run_dart_cleaning_loop <- function(
     species_values <- as.character(meta[[species_col_name]])
     site_values <- as.character(meta[[site_col_name]])
 
-    species_values[is.na(species_values) | species_values == ""] <- "Unassigned_species"
-    site_values[is.na(site_values) | site_values == ""] <- "Unassigned_site"
+    species_values[
+      is.na(species_values) | species_values == ""
+    ] <- "Unassigned_species"
+    site_values[
+      is.na(site_values) | site_values == ""
+    ] <- "Unassigned_site"
 
     if (clone_scope == "site") {
-      # Site scope: compare samples only within each species × site combination.
       if (!exists("individual_kinship_by_pop_sp", mode = "function")) {
         stop(
           "clone_scope = 'site' requires individual_kinship_by_pop_sp().",
@@ -154,7 +291,6 @@ run_dart_cleaning_loop <- function(
         as_bigmat = TRUE
       )
     } else {
-      # Species scope: compare samples across all sites, but only within species.
       if (!exists("individual_kinship_by_pop", mode = "function")) {
         stop(
           "clone_scope = 'species' requires individual_kinship_by_pop().",
@@ -191,51 +327,77 @@ run_dart_cleaning_loop <- function(
     kin <- kin[sample_names, sample_names, drop = FALSE]
     kin[is.na(kin)] <- 0
 
-    # Protect against small numerical asymmetries in the returned matrix.
+    # Account for small numerical differences between matrix triangles.
     kin <- pmax(kin, t(kin))
     dimnames(kin) <- list(sample_names, sample_names)
     diag(kin) <- 0
     kin
   }
 
-  # helper: identify connected clone groups and retain the sample with the fewest missing loci
-  filter_clones_once <- function(dms_obj, removal_source_obj, round_number, stage = "main") {
-    if (length(dms_obj$sample_names) <= 1) {
+  # ============================================================
+  # Identify clone components and keep the least-missing sample
+  # ============================================================
+  filter_clones_once <- function(dms_obj, round_number, stage = "main") {
+    sample_names <- dms_obj$sample_names
+    n_samples <- length(sample_names)
+
+    if (n_samples <= 1L) {
       return(list(
         dms = dms_obj,
         removed = 0L,
         removed_samples = character(),
-        assignments = data.frame(),
-        kinship = NULL
+        assignments = data.frame()
       ))
     }
 
     kin <- calculate_clone_kinship(dms_obj)
 
-    clone_adj <- kin >= clonal_threshold
-    clone_adj[is.na(clone_adj)] <- FALSE
-    diag(clone_adj) <- FALSE
-
-    network <- igraph::graph_from_adjacency_matrix(
-      clone_adj * 1L,
-      mode = "undirected",
-      diag = FALSE,
-      weighted = NULL
+    # Build an edge list directly from clone-like pairs. This avoids creating
+    # an additional dense adjacency matrix and is much lighter for large data.
+    clone_pairs <- which(
+      upper.tri(kin) & kin >= clonal_threshold,
+      arr.ind = TRUE
     )
 
-    clone_membership <- igraph::components(network)$membership
+    if (nrow(clone_pairs) == 0L) {
+      clone_membership <- seq_len(n_samples)
+      names(clone_membership) <- sample_names
+    } else {
+      edge_matrix <- cbind(
+        sample_names[clone_pairs[, 1]],
+        sample_names[clone_pairs[, 2]]
+      )
+
+      network <- igraph::graph_from_edgelist(
+        edge_matrix,
+        directed = FALSE
+      )
+
+      missing_vertices <- setdiff(sample_names, igraph::V(network)$name)
+      if (length(missing_vertices) > 0L) {
+        network <- igraph::add_vertices(
+          network,
+          nv = length(missing_vertices),
+          name = missing_vertices
+        )
+      }
+
+      clone_membership <- igraph::components(network)$membership
+      clone_membership <- clone_membership[sample_names]
+    }
+
     clones <- data.frame(
-      sample = names(clone_membership),
-      genet = as.integer(unname(clone_membership)),
+      sample = sample_names,
+      genet = as.integer(unname(clone_membership[sample_names])),
       stringsAsFactors = FALSE
     )
 
     meta <- as.data.frame(dms_obj$meta$analyses, stringsAsFactors = FALSE)
-    if (!"sample" %in% names(meta)) meta$sample <- dms_obj$sample_names
+    if (!"sample" %in% names(meta)) meta$sample <- sample_names
     meta <- meta[match(clones$sample, meta$sample), , drop = FALSE]
 
     missing_counts <- rowSums(is.na(dms_obj$gt))
-    names(missing_counts) <- dms_obj$sample_names
+    names(missing_counts) <- sample_names
 
     clones_out <- data.frame(
       genet = clones$genet,
@@ -248,7 +410,7 @@ run_dart_cleaning_loop <- function(
       c("lat", "long", site_col_name, species_col_name),
       names(meta)
     )
-    if (length(metadata_columns) > 0) {
+    if (length(metadata_columns) > 0L) {
       clones_out <- cbind(
         clones_out,
         meta[, metadata_columns, drop = FALSE]
@@ -256,11 +418,13 @@ run_dart_cleaning_loop <- function(
     }
 
     group_sizes <- table(clones_out$genet)
-    clones_out$group_size <- as.integer(group_sizes[as.character(clones_out$genet)])
-    clones_out$clone_detected <- clones_out$group_size > 1
+    clones_out$group_size <- as.integer(
+      group_sizes[as.character(clones_out$genet)]
+    )
+    clones_out$clone_detected <- clones_out$group_size > 1L
     clones_out$retained <- TRUE
 
-    clone_genets <- as.integer(names(group_sizes[group_sizes > 1]))
+    clone_genets <- as.integer(names(group_sizes[group_sizes > 1L]))
 
     for (genet_id in clone_genets) {
       group_idx <- which(clones_out$genet == genet_id)
@@ -268,6 +432,7 @@ run_dart_cleaning_loop <- function(
         clones_out$n_missing_loci[group_idx],
         clones_out$sample[group_idx]
       )
+
       retained_idx <- group_idx[group_order[1]]
       clones_out$retained[group_idx] <- FALSE
       clones_out$retained[retained_idx] <- TRUE
@@ -283,332 +448,484 @@ run_dart_cleaning_loop <- function(
     } else {
       as.character(clones_out[[species_col_name]])
     }
+
     clones_out$removal_reason <- ifelse(
       clones_out$clone_detected & !clones_out$retained,
       paste0("clone_removed_", clone_scope),
-      ifelse(clones_out$clone_detected, "clone_representative_retained", "not_a_clone")
-    )
-
-    clones_out <- clones_out[order(clones_out$genet, !clones_out$retained,
-                                   clones_out$n_missing_loci, clones_out$sample), ]
-
-    stage_suffix <- if (identical(stage, "main")) "" else paste0("_", stage)
-    output_file <- file.path(
-      tables_dir,
-      paste0(
-        "PLINK_clones_", clone_scope,
-        "_round", round_number,
-        stage_suffix,
-        ".xlsx"
+      ifelse(
+        clones_out$clone_detected,
+        "clone_representative_retained",
+        "not_a_clone"
       )
     )
 
-    openxlsx::write.xlsx(
-      clones_out,
-      file = output_file,
-      asTable = FALSE,
-      overwrite = TRUE
-    )
+    clones_out <- clones_out[
+      order(
+        clones_out$genet,
+        !clones_out$retained,
+        clones_out$n_missing_loci,
+        clones_out$sample
+      ),
+      ,
+      drop = FALSE
+    ]
 
     samples_to_keep <- clones_out$sample[clones_out$retained]
     removed_samples <- clones_out$sample[!clones_out$retained]
 
-    filtered_obj <- remove.by.list(removal_source_obj, samples_to_keep)
-    removed_n <- length(dms_obj$sample_names) - length(filtered_obj$sample_names)
+    if (isTRUE(write_clone_tables)) {
+      table_to_write <- clones_out
+      if (!isTRUE(clone_table_include_singletons)) {
+        table_to_write <- table_to_write[
+          table_to_write$clone_detected,
+          ,
+          drop = FALSE
+        ]
+      }
 
-    if (removed_n < 0) {
+      stage_suffix <- if (identical(stage, "main")) {
+        ""
+      } else {
+        paste0("_", stage)
+      }
+
+      output_file <- file.path(
+        tables_dir,
+        paste0(
+          "PLINK_clones_",
+          clone_scope,
+          "_round",
+          round_number,
+          stage_suffix,
+          ".xlsx"
+        )
+      )
+
+      openxlsx::write.xlsx(
+        table_to_write,
+        file = output_file,
+        asTable = FALSE,
+        overwrite = TRUE
+      )
+    }
+
+    # Filter the current dms object directly so no removed sample can be
+    # accidentally reintroduced from an earlier intermediate object.
+    filtered_obj <- remove.by.list(dms_obj, samples_to_keep)
+    removed_n <- n_samples - length(filtered_obj$sample_names)
+
+    if (removed_n < 0L) {
       stop(
-        "Clone filtering increased the number of samples, indicating unexpected remove.by.list behaviour.",
+        paste0(
+          "Clone filtering increased the number of samples, indicating ",
+          "unexpected remove.by.list behaviour."
+        ),
         call. = FALSE
       )
     }
 
     if (removed_n != length(removed_samples)) {
       warning(
-        "The number removed by remove.by.list (", removed_n,
-        ") differs from the clone-decision table (", length(removed_samples), ")."
+        "The number removed by remove.by.list (",
+        removed_n,
+        ") differs from the clone-decision table (",
+        length(removed_samples),
+        ")."
       )
     }
 
+    # Do not return the dense kinship matrix: retaining it can consume a large
+    # amount of memory and it is not used by the outer loop.
     list(
       dms = filtered_obj,
       removed = as.integer(removed_n),
       removed_samples = removed_samples,
-      assignments = clones_out,
-      kinship = kin
+      assignments = clones_out
     )
   }
 
-  # main loop
+  # ============================================================
+  # Maximin downsampling, vectorised over the distance matrix
+  # ============================================================
+  downsample_max_diversity <- function(geno_mat, sample_ids, n_keep) {
+    n_samples <- length(sample_ids)
+    if (n_samples <= n_keep) return(sample_ids)
+
+    d <- as.matrix(stats::dist(geno_mat))
+    diag(d) <- NA_real_
+
+    avg_dist <- rowMeans(d, na.rm = TRUE)
+    avg_dist[!is.finite(avg_dist)] <- -Inf
+
+    first_idx <- which.max(avg_dist)
+    selected_idx <- first_idx
+
+    min_distance_to_selected <- d[, first_idx]
+    min_distance_to_selected[first_idx] <- -Inf
+    min_distance_to_selected[
+      !is.finite(min_distance_to_selected)
+    ] <- -Inf
+
+    while (length(selected_idx) < n_keep) {
+      next_idx <- which.max(min_distance_to_selected)
+
+      if (length(next_idx) == 0L ||
+          !is.finite(min_distance_to_selected[next_idx])) {
+        # Deterministic fallback when all remaining distances are unavailable.
+        next_idx <- setdiff(seq_len(n_samples), selected_idx)[1]
+      }
+
+      selected_idx <- c(selected_idx, next_idx)
+
+      candidate_distances <- d[, next_idx]
+      candidate_distances[!is.finite(candidate_distances)] <- Inf
+
+      current_distances <- min_distance_to_selected
+      current_distances[!is.finite(current_distances)] <- Inf
+
+      min_distance_to_selected <- pmin(
+        current_distances,
+        candidate_distances
+      )
+      min_distance_to_selected[selected_idx] <- -Inf
+    }
+
+    sample_ids[selected_idx]
+  }
+
+  # ============================================================
+  # Main iterative cleaning loop
+  # ============================================================
   while (TRUE) {
-    round <- round + 1
+    round <- round + 1L
+
     if (round > max_rounds) {
       message("Reached max_rounds cap (", max_rounds, "). Stopping loop.")
       break
     }
+
     message("=== ROUND ", round, " ===")
-    removed_this_round_total <- 0
-    
-    # -------------------------
-    # 1) Remove high missingness samples
-    # -------------------------
-    samples_high_missing <- dms$sample_names[which(rowMeans(is.na(dms$gt)) > sample_miss)]
-    if (length(samples_high_missing) > 0) {
-      # write table with round number
-      write.table(data.frame(sample=samples_high_missing,
-                             sample_miss = rowMeans(is.na(dms$gt))[which(rowMeans(is.na(dms$gt))>sample_miss)]),
-                  file = file.path(tables_dir, paste0("high_missing_samples_removed_round", round, ".tsv")),
-                  sep = "\t", row.names = FALSE)
+    removed_this_round_total <- 0L
+
+    # ----------------------------------------------------------
+    # 1) Remove high-missingness samples
+    # ----------------------------------------------------------
+    sample_missingness <- rowMeans(is.na(dms$gt))
+    names(sample_missingness) <- dms$sample_names
+
+    samples_high_missing <- names(sample_missingness)[
+      sample_missingness > sample_miss
+    ]
+
+    removed_missing <- length(samples_high_missing)
+
+    if (removed_missing > 0L) {
+      write.table(
+        data.frame(
+          sample = samples_high_missing,
+          sample_miss = unname(sample_missingness[samples_high_missing]),
+          stringsAsFactors = FALSE
+        ),
+        file = file.path(
+          tables_dir,
+          paste0("high_missing_samples_removed_round", round, ".tsv")
+        ),
+        sep = "\t",
+        row.names = FALSE
+      )
+
       dms <- remove.by.missingness(dms, sample_miss)
-      removed_this_round_total <- removed_this_round_total + length(samples_high_missing)
-      log_df <- rbind(log_df, data.frame(round=round, step="missingness", removed=length(samples_high_missing)))
-      message("Removed ", length(samples_high_missing), " samples for high missingness (round ", round, ").")
+      removed_this_round_total <- removed_this_round_total + removed_missing
+
+      message(
+        "Removed ",
+        removed_missing,
+        " samples for high missingness (round ",
+        round,
+        ")."
+      )
     } else {
       message("No high-missingness samples found (round ", round, ").")
-      log_df <- rbind(log_df, data.frame(round=round, step="missingness", removed=0))
     }
-    
-    # Reanalyse after missingness (use round number as tag)
-    re_res <- reanalyse(d1, dms, paste0(round, "a"))
-    d1 <- re_res$d1
-    d2 <- re_res$d2
-    d3 <- re_res$d3
-    dm <- re_res$dm
-    dms <- re_res$dms
-    
-    # compute unfiltered_site_summary used later
-    unfiltered_site_summary <- dms$meta$analyses %>% as.data.frame() %>%
-      group_by(!!rlang::sym(species_col_name), !!rlang::sym(site_col_name)) %>%
-      dplyr::summarize(n_unfiltered = sum(n()),
-                       lat = mean(as.numeric(lat), na.rm=TRUE),
-                       long = mean(as.numeric(long), na.rm=TRUE),
-                       .groups = 'drop') %>%
-      filter(n_unfiltered > 0) %>%
-      as.data.frame()
-    unfiltered_site_summary <- unfiltered_site_summary[rev(order(unfiltered_site_summary$lat)),]
-    
-    # -------------------------
-    # 2) Clone detection & removal
-    # -------------------------
+
+    add_log(round, "missingness", removed_missing)
+
+    # Reanalyse only when the sample set changed, or when the previous round
+    # ended with a clone removal after its final reanalysis.
+    if (removed_missing > 0L || isTRUE(needs_reanalysis)) {
+      re_res <- reanalyse(d1, dms, paste0(round, "a"))
+      d1 <- re_res$d1
+      dms <- re_res$dms
+      treatment <- dms$treatment
+      needs_reanalysis <- FALSE
+    } else {
+      message("Skipped unchanged missingness reanalysis.")
+    }
+
+    # ----------------------------------------------------------
+    # 2) Main clone detection and removal
+    # ----------------------------------------------------------
     dms <- disambiguate_site_names(dms)
 
     clone_result <- filter_clones_once(
       dms_obj = dms,
-      removal_source_obj = dm,
       round_number = round,
       stage = "main"
     )
 
     dms <- clone_result$dms
-    removed_here <- clone_result$removed
-    removed_this_round_total <- removed_this_round_total + removed_here
+    removed_main_clones <- clone_result$removed
+    removed_this_round_total <-
+      removed_this_round_total + removed_main_clones
 
-    log_df <- rbind(
-      log_df,
-      data.frame(
-        round = round,
-        step = paste0("clones_", clone_scope),
-        removed = removed_here,
-        stringsAsFactors = FALSE
-      )
+    add_log(
+      round,
+      paste0("clones_", clone_scope),
+      removed_main_clones
     )
 
-    if (removed_here > 0) {
+    if (removed_main_clones > 0L) {
       message(
-        "Removed ", removed_here,
-        " clone samples using the '", clone_scope,
-        "' scope (round ", round, ")."
+        "Removed ",
+        removed_main_clones,
+        " clone samples using the '",
+        clone_scope,
+        "' scope (round ",
+        round,
+        ")."
       )
     } else {
       message(
-        "No clone samples detected using the '", clone_scope,
-        "' scope (round ", round, ")."
+        "No clone samples detected using the '",
+        clone_scope,
+        "' scope (round ",
+        round,
+        ")."
       )
     }
 
-    treatment <- dms$treatment
+    # A clone removal can alter locus missingness and the one-SNP-per-locus
+    # data. Match the original workflow by rebuilding before later filters.
+    reanalysed_after_main_clone <- FALSE
+
+    if (removed_main_clones > 0L) {
+      re_res2 <- reanalyse(d1, dms, paste0(round, "b"))
+      d1 <- re_res2$d1
+      dms <- re_res2$dms
+      treatment <- dms$treatment
+      reanalysed_after_main_clone <- TRUE
+    } else {
+      message("Skipped unchanged post-clone reanalysis.")
+    }
+
     dms <- disambiguate_site_names(dms)
 
-    unfiltered_site_summary <- dms$meta$analyses %>%
-      as.data.frame() %>%
-      group_by(
-        !!rlang::sym(species_col_name),
-        !!rlang::sym(site_col_name)
-      ) %>%
-      dplyr::summarize(
-        n_unfiltered = dplyr::n(),
-        lat = mean(as.numeric(lat), na.rm = TRUE),
-        long = mean(as.numeric(long), na.rm = TRUE),
-        .groups = "drop"
-      ) %>%
-      filter(n_unfiltered > 0) %>%
-      as.data.frame()
+    # ----------------------------------------------------------
+    # 3) Remove small populations
+    # ----------------------------------------------------------
+    removed_small_pop_samples <- 0L
 
-    unfiltered_site_summary <- unfiltered_site_summary[
-      rev(order(unfiltered_site_summary$lat)),
-    ]
+    if (remove_pops_flag) {
+      site_values <- as.character(
+        dms$meta$analyses[, site_col_name]
+      )
+      site_counts <- table(site_values)
+      small_sites <- names(
+        site_counts[site_counts < samples_per_pop_remove]
+      )
 
-    # Reanalyse after clone removal
-    re_res2 <- reanalyse(d1, dms, paste0(round, "b"))
-    d1 <- re_res2$d1
-    d2 <- re_res2$d2
-    d3 <- re_res2$d3
-    dm <- re_res2$dm
-    dms <- re_res2$dms
-    
-    # -------------------------
-    # 3) Pop filtering and downsampling
-    # -------------------------
-    if (toupper(remove_pops_less_than_n5) == "TRUE") {
-      not_n5_sites <- as.vector(names(which(table(dms$meta$analyses[, site_col_name]) < samples_per_pop_remove)))
-      not_n5_samples <- dms$sample_names[which(!(dms$meta$analyses[, site_col_name] %in% not_n5_sites))]
-      dms <- remove.by.list(dms, not_n5_samples)
-      log_df <- rbind(log_df, data.frame(round=round, step="remove_small_pops", removed=length(not_n5_sites)))
-      message("Removed sites with < ", samples_per_pop_remove, " (", length(not_n5_sites), " sites) (round ", round, ").")
-    } else {
-      # create dms_no_n1_sites as your code used it (no removal from dms in this branch)
-      not_n1_sites <- as.vector(unfiltered_site_summary[unfiltered_site_summary$n_unfiltered <= 1, 2])
-      not_n1_samples <- dms$sample_names[which(!(dms$meta$analyses[, site_col_name] %in% not_n1_sites))]
-      dms_no_n1_sites <- remove.by.list(dms, not_n1_samples)
-      # we don't assign back to dms unless user requested removal above
-      log_df <- rbind(log_df, data.frame(round=round, step="remove_small_pops", removed=0))
-    }
-    
-    
-    
-    
-    downsample_max_diversity <- function(geno_mat, sample_ids, n_keep) {
-      # geno_mat: numeric genotype matrix individuals × SNPs
-      # sample_ids: vector of sample names (same order as rows in geno_mat)
-      # n_keep: number of individuals to retain
-      
-      if(length(sample_ids) <= n_keep) {
-        return(sample_ids)  # nothing to do
+      samples_to_keep <- dms$sample_names[
+        !(site_values %in% small_sites)
+      ]
+      removed_small_pop_samples <-
+        length(dms$sample_names) - length(samples_to_keep)
+
+      if (removed_small_pop_samples > 0L) {
+        dms <- remove.by.list(dms, samples_to_keep)
       }
-      
-      # Compute Euclidean genetic distances
-      d <- as.matrix(dist(geno_mat))
-      diag(d) <- NA
-      
-      # 1. Pick the individual with the maximum average distance to others
-      avg_dist <- rowMeans(d, na.rm = TRUE)
-      first <- sample_ids[which.max(avg_dist)]
-      selected <- c(first)
-      
-      # 2. Iteratively add the individual furthest from the selected set
-      remaining <- setdiff(sample_ids, selected)
-      
-      while(length(selected) < n_keep) {
-        # For each remaining individual, compute its distance to the nearest selected one
-        min_dists <- sapply(remaining, function(ind) {
-          inds <- which(sample_ids %in% selected)
-          rem  <- which(sample_ids == ind)
-          min(d[rem, inds], na.rm = TRUE)
-        })
-        
-        # Pick the individual with the largest minimum distance
-        next_ind <- remaining[which.max(min_dists)]
-        selected <- c(selected, next_ind)
-        remaining <- setdiff(remaining, next_ind)
-      }
-      return(selected)
+
+      message(
+        "Removed ",
+        length(small_sites),
+        " sites containing ",
+        removed_small_pop_samples,
+        " samples because site size was < ",
+        samples_per_pop_remove,
+        " (round ",
+        round,
+        ")."
+      )
     }
-    
-    
-    if (toupper(downsample) == "TRUE") {
-      geno <- dms$gt  # or however your genotype matrix is stored
-      samples_to_keep <- c()
-      sites <- unique(dms$meta$analyses[, site_col_name])
-      
-      for (s in sites) {
-        site_samples <- dms$sample_names[dms$meta$analyses[, site_col_name] == s]
+
+    add_log(round, "remove_small_pops", removed_small_pop_samples)
+
+    # ----------------------------------------------------------
+    # 4) Downsample large populations
+    # ----------------------------------------------------------
+    removed_downsample <- 0L
+
+    if (downsample_flag) {
+      geno <- dms$gt
+      site_values <- as.character(
+        dms$meta$analyses[, site_col_name]
+      )
+      sites <- unique(site_values)
+      samples_to_keep <- character()
+
+      for (site_name in sites) {
+        site_idx <- which(site_values == site_name)
+        site_samples <- dms$sample_names[site_idx]
+
         if (length(site_samples) > samples_per_pop_downsample) {
-          # extract genotype rows
-          geno_sub <- geno[site_samples, , drop = FALSE]
-          keep <- downsample_max_diversity(geno_mat = geno_sub, sample_ids = site_samples, n_keep = samples_per_pop_downsample)
+          geno_sub <- geno[site_idx, , drop = FALSE]
+
+          keep <- downsample_max_diversity(
+            geno_mat = geno_sub,
+            sample_ids = site_samples,
+            n_keep = samples_per_pop_downsample
+          )
           samples_to_keep <- c(samples_to_keep, keep)
         } else {
           samples_to_keep <- c(samples_to_keep, site_samples)
         }
       }
-      # remove all samples not in the genetically diverse kept set
-      dms <- remove.by.list(dms, samples_to_keep)
-      message("Downsampled populations to ", samples_per_pop_downsample, " (round ", round, ").")
-    } else {
-      log_df <- rbind(log_df, data.frame(round=round, step="downsample", removed=0))
-    }
-    
-    # Reanalyse after pop filtering / downsample
-    re_res3 <- reanalyse(d1, dms, paste0(round, "c"))
-    d1 <- re_res3$d1
-    d2 <- re_res3$d2
-    d3 <- re_res3$d3
-    dm <- re_res3$dm
-    dms <- re_res3$dms
-    
-    # Final clone re-check using the same selected scope
-    dms <- disambiguate_site_names(dms)
 
-    clone_final_result <- filter_clones_once(
-      dms_obj = dms,
-      removal_source_obj = dm,
-      round_number = round,
-      stage = "finalcheck"
+      samples_to_keep <- unique(samples_to_keep)
+      removed_downsample <-
+        length(dms$sample_names) - length(samples_to_keep)
+
+      if (removed_downsample > 0L) {
+        dms <- remove.by.list(dms, samples_to_keep)
+      }
+
+      message(
+        "Downsampling removed ",
+        removed_downsample,
+        " samples and retained at most ",
+        samples_per_pop_downsample,
+        " per site (round ",
+        round,
+        ")."
+      )
+    }
+
+    add_log(round, "downsample", removed_downsample)
+
+    removed_pop_total <-
+      removed_small_pop_samples + removed_downsample
+    removed_this_round_total <-
+      removed_this_round_total + removed_pop_total
+
+    # Rebuild only if population filtering or downsampling changed samples.
+    if (removed_pop_total > 0L) {
+      re_res3 <- reanalyse(d1, dms, paste0(round, "c"))
+      d1 <- re_res3$d1
+      dms <- re_res3$dms
+      treatment <- dms$treatment
+      reanalysed_after_main_clone <- TRUE
+    } else {
+      message("Skipped unchanged population/downsampling reanalysis.")
+    }
+
+    # ----------------------------------------------------------
+    # 5) Final clone check
+    # ----------------------------------------------------------
+    # This check is necessary only when loci were recalculated after the main
+    # clone check. If no reanalysis occurred, it would repeat the same matrix.
+    removed_final_clones <- 0L
+
+    if (isTRUE(reanalysed_after_main_clone)) {
+      dms <- disambiguate_site_names(dms)
+
+      clone_final_result <- filter_clones_once(
+        dms_obj = dms,
+        round_number = round,
+        stage = "finalcheck"
+      )
+
+      dms <- clone_final_result$dms
+      removed_final_clones <- clone_final_result$removed
+      removed_this_round_total <-
+        removed_this_round_total + removed_final_clones
+
+      if (removed_final_clones > 0L) {
+        needs_reanalysis <- TRUE
+        message(
+          "Final clone check removed ",
+          removed_final_clones,
+          " samples using the '",
+          clone_scope,
+          "' scope (round ",
+          round,
+          ")."
+        )
+      } else {
+        message(
+          "No clones detected in the final '",
+          clone_scope,
+          "' check (round ",
+          round,
+          ")."
+        )
+      }
+    } else {
+      message(
+        "Skipped final clone check because loci were unchanged after the ",
+        "main clone check."
+      )
+    }
+
+    add_log(
+      round,
+      paste0("clones_", clone_scope, "_finalcheck"),
+      removed_final_clones
     )
 
-    dms <- clone_final_result$dms
-    removed_final <- clone_final_result$removed
-    removed_this_round_total <- removed_this_round_total + removed_final
+    # ----------------------------------------------------------
+    # Round summary and stopping rule
+    # ----------------------------------------------------------
+    new_n <- length(dms$sample_names)
 
-    log_df <- rbind(
-      log_df,
-      data.frame(
+    if (isTRUE(write_round_summaries)) {
+      round_summary <- data.frame(
         round = round,
-        step = paste0("clones_", clone_scope, "_finalcheck"),
-        removed = removed_final,
+        samples_after = new_n,
+        removed_this_round = removed_this_round_total,
         stringsAsFactors = FALSE
       )
-    )
 
-    if (removed_final > 0) {
-      message(
-        "Final clone check removed ", removed_final,
-        " samples using the '", clone_scope,
-        "' scope (round ", round, ")."
-      )
-    } else {
-      message(
-        "No clones detected in the final '", clone_scope,
-        "' check (round ", round, ")."
+      write.table(
+        round_summary,
+        file = file.path(
+          tables_dir,
+          paste0("round_summary_", round, ".tsv")
+        ),
+        sep = "\t",
+        row.names = FALSE
       )
     }
 
-    # Write a small round summary file
-    round_summary <- data.frame(
-      round = round,
-      samples_after = length(dms$sample_names),
-      removed_this_round = removed_this_round_total
+    message(
+      "Round ",
+      round,
+      " end: samples = ",
+      new_n,
+      " (previous ",
+      prev_n,
+      ")."
     )
-    write.table(round_summary, file = file.path(tables_dir, paste0("round_summary_", round, ".tsv")), sep = "\t", row.names = FALSE)
-    
-    # stopping condition: stop when sample count doesn't change
-    new_n <- length(dms$sample_names)
-    message("Round ", round, " end: samples = ", new_n, " (previous ", prev_n, ").")
+
     if (new_n == prev_n) {
       message("No change in sample count; stopping.")
       break
-    } else {
-      prev_n <- new_n
-      # continue looping
     }
-  } # end while
-  
-  
-  
-  
-  # ==================================
-  # RESTORE ORIGINAL SITE NAMES
-  # ==================================
+
+    prev_n <- new_n
+  }
+
+  # ============================================================
+  # Restore original site names
+  # ============================================================
   message("Restoring original site names at final output...")
 
   final_meta <- as.data.frame(dms$meta$analyses, stringsAsFactors = FALSE)
@@ -625,14 +942,29 @@ run_dart_cleaning_loop <- function(
   dms$meta$analyses[, site_col_name] <-
     orig_site_lookup$site_original[site_match]
 
-  # final outputs
-  final_list <- list(
+  log_df <- if (length(log_rows) > 0L) {
+    do.call(rbind, log_rows)
+  } else {
+    data.frame(
+      round = integer(),
+      step = character(),
+      removed = integer(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  list(
     dms = dms,
     d1 = d1,
     rounds = round,
     log = log_df,
     treatment = treatment,
-    clone_scope = clone_scope
+    clone_scope = clone_scope,
+    optimisation_settings = list(
+      write_intermediate_qc = write_intermediate_qc,
+      write_clone_tables = write_clone_tables,
+      clone_table_include_singletons = clone_table_include_singletons,
+      write_round_summaries = write_round_summaries
+    )
   )
-  return(final_list)
 }
