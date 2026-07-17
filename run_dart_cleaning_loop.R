@@ -163,6 +163,38 @@ run_dart_cleaning_loop <- function(
   kinship_files <- character()
   kinship_plot_files <- character()
 
+  # Kinship calculations may occur several times during filtering, but only
+  # the initial and final matrices/plots are retained.
+  initial_kinship_saved <- FALSE
+  final_kinship_candidate_ready <- FALSE
+  final_candidate_samples <- NULL
+  final_candidate_loci <- NULL
+
+  initial_decision_file <- file.path(
+    kinship_dir,
+    paste0("kinship_", clone_scope, "_initial.rds")
+  )
+  final_decision_file <- file.path(
+    kinship_dir,
+    paste0("kinship_", clone_scope, "_final.rds")
+  )
+  final_reference_file <- file.path(
+    kinship_dir,
+    "kinship_species_reference_final.rds"
+  )
+
+  # When matrices are not being retained but a final heatmap is requested,
+  # use a temporary RDS file so the final matrix does not need to remain in
+  # memory throughout the loop.
+  final_candidate_cache_file <- if (isTRUE(save_kinship_matrices)) {
+    final_decision_file
+  } else {
+    tempfile(
+      pattern = paste0("kinship_", clone_scope, "_final_"),
+      fileext = ".rds"
+    )
+  }
+
   add_log <- function(round_number, step_name, removed_number) {
     log_index <<- log_index + 1L
     log_rows[[log_index]] <<- data.frame(
@@ -665,6 +697,329 @@ run_dart_cleaning_loop <- function(
   }
 
   # ============================================================
+  # Initial/final-only kinship output helpers
+  # ============================================================
+  get_locus_signature <- function(dms_obj) {
+    if (!is.null(dms_obj$locus_names)) {
+      return(as.character(dms_obj$locus_names))
+    }
+
+    locus_names <- colnames(dms_obj$gt)
+    if (is.null(locus_names)) {
+      return(as.character(seq_len(ncol(dms_obj$gt))))
+    }
+
+    as.character(locus_names)
+  }
+
+  save_initial_kinship_outputs <- function(kin_result) {
+    if (isTRUE(initial_kinship_saved)) {
+      return(invisible(NULL))
+    }
+
+    if (isTRUE(save_kinship_matrices)) {
+      saveRDS(
+        kin_result$decision,
+        file = initial_decision_file,
+        compress = compress_kinship_matrices
+      )
+      kinship_files <<- c(kinship_files, initial_decision_file)
+      message("Saved initial kinship matrix: ", initial_decision_file)
+    }
+
+    if (isTRUE(write_kinship_heatmaps)) {
+      initial_title <- if (clone_scope == "site") {
+        paste0(
+          "Species-wide kinship reference; displayed only within ",
+          "species × site (initial)"
+        )
+      } else {
+        "Kinship within species across all sites (initial)"
+      }
+
+      initial_plot <- write_loop_kinship_heatmap(
+        kinship_matrix = kin_result$decision,
+        comparison_mask = kin_result$comparison_mask,
+        species_values = kin_result$species,
+        site_values = kin_result$site,
+        scope_name = paste0(clone_scope, "_initial"),
+        title_text = initial_title
+      )
+
+      kinship_plot_files <<- c(
+        kinship_plot_files,
+        initial_plot
+      )
+    }
+
+    initial_kinship_saved <<- TRUE
+    invisible(NULL)
+  }
+
+  update_final_kinship_candidate <- function(
+      kin_result,
+      dms_obj
+  ) {
+    # A zero-removal clone check is a candidate final state. If the next round
+    # has the same samples and loci, the resulting kinship matrix is identical,
+    # so the file does not need to be written again.
+    current_samples <- as.character(dms_obj$sample_names)
+    current_loci <- get_locus_signature(dms_obj)
+
+    same_as_saved_candidate <- isTRUE(
+      final_kinship_candidate_ready
+    ) &&
+      identical(
+        current_samples,
+        final_candidate_samples
+      ) &&
+      identical(
+        current_loci,
+        final_candidate_loci
+      )
+
+    if (same_as_saved_candidate) {
+      message(
+        "Skipped duplicate final-candidate kinship output; ",
+        "samples and loci were unchanged."
+      )
+      return(invisible(NULL))
+    }
+
+    if (isTRUE(save_kinship_matrices) ||
+        isTRUE(write_kinship_heatmaps)) {
+      saveRDS(
+        kin_result$decision,
+        file = final_candidate_cache_file,
+        compress = if (isTRUE(save_kinship_matrices)) {
+          compress_kinship_matrices
+        } else {
+          FALSE
+        }
+      )
+    }
+
+    if (isTRUE(save_kinship_matrices)) {
+      kinship_files <<- c(
+        kinship_files,
+        final_decision_file
+      )
+      message(
+        "Updated final-candidate kinship matrix: ",
+        final_decision_file
+      )
+
+      # For site-level clone removal, retain one final unmasked species-wide
+      # reference matrix. No intermediate reference matrices are written.
+      if (clone_scope == "site" &&
+          isTRUE(save_reference_kinship_matrices)) {
+        saveRDS(
+          kin_result$species_reference,
+          file = final_reference_file,
+          compress = compress_kinship_matrices
+        )
+        kinship_files <<- c(
+          kinship_files,
+          final_reference_file
+        )
+        message(
+          "Updated final species-reference kinship matrix: ",
+          final_reference_file
+        )
+      }
+    }
+
+    final_candidate_samples <<- current_samples
+    final_candidate_loci <<- current_loci
+    final_kinship_candidate_ready <<- TRUE
+
+    invisible(NULL)
+  }
+
+  finalise_kinship_outputs <- function(final_dms) {
+    outputs_requested <- isTRUE(save_kinship_matrices) ||
+      isTRUE(write_kinship_heatmaps)
+
+    if (!outputs_requested ||
+        length(final_dms$sample_names) <= 1L) {
+      return(invisible(NULL))
+    }
+
+    current_samples <- as.character(final_dms$sample_names)
+    current_loci <- get_locus_signature(final_dms)
+
+    candidate_is_current <- isTRUE(
+      final_kinship_candidate_ready
+    ) &&
+      file.exists(final_candidate_cache_file) &&
+      identical(
+        current_samples,
+        final_candidate_samples
+      ) &&
+      identical(
+        current_loci,
+        final_candidate_loci
+      )
+
+    # This fallback should rarely be needed. It guarantees that the saved
+    # final matrix represents the actual final dms object if the loop ended
+    # through max_rounds or another unusual path.
+    if (!candidate_is_current) {
+      message(
+        "Recalculating kinship once for the final dms object because no ",
+        "current final candidate was available."
+      )
+
+      final_result <- calculate_clone_kinship(final_dms)
+
+      saveRDS(
+        final_result$decision,
+        file = final_candidate_cache_file,
+        compress = if (isTRUE(save_kinship_matrices)) {
+          compress_kinship_matrices
+        } else {
+          FALSE
+        }
+      )
+
+      if (isTRUE(save_kinship_matrices)) {
+        kinship_files <<- c(
+          kinship_files,
+          final_decision_file
+        )
+
+        if (clone_scope == "site" &&
+            isTRUE(save_reference_kinship_matrices)) {
+          saveRDS(
+            final_result$species_reference,
+            file = final_reference_file,
+            compress = compress_kinship_matrices
+          )
+          kinship_files <<- c(
+            kinship_files,
+            final_reference_file
+          )
+        }
+      }
+
+      final_candidate_samples <<- current_samples
+      final_candidate_loci <<- current_loci
+      final_kinship_candidate_ready <<- TRUE
+    }
+
+    if (isTRUE(write_kinship_heatmaps)) {
+      final_matrix <- readRDS(
+        final_candidate_cache_file
+      )
+
+      final_matrix <- final_matrix[
+        current_samples,
+        current_samples,
+        drop = FALSE
+      ]
+
+      final_meta <- as.data.frame(
+        final_dms$meta$analyses,
+        stringsAsFactors = FALSE
+      )
+      if (!"sample" %in% names(final_meta)) {
+        final_meta$sample <- final_dms$sample_names
+      }
+
+      final_meta <- final_meta[
+        match(current_samples, final_meta$sample),
+        ,
+        drop = FALSE
+      ]
+
+      if (anyNA(final_meta$sample)) {
+        stop(
+          "Final heatmap metadata could not be aligned to the final matrix.",
+          call. = FALSE
+        )
+      }
+
+      final_species <- as.character(
+        final_meta[[species_col_name]]
+      )
+
+      final_site_match <- match(
+        current_samples,
+        orig_site_lookup$sample
+      )
+      if (anyNA(final_site_match)) {
+        stop(
+          "Final heatmap samples could not be matched to original sites.",
+          call. = FALSE
+        )
+      }
+
+      final_sites <- as.character(
+        orig_site_lookup$site_original[final_site_match]
+      )
+
+      final_species[
+        is.na(final_species) | trimws(final_species) == ""
+      ] <- "Unassigned_species"
+      final_sites[
+        is.na(final_sites) | trimws(final_sites) == ""
+      ] <- "Unassigned_site"
+
+      if (clone_scope == "site") {
+        final_mask <- outer(
+          final_species,
+          final_species,
+          FUN = "=="
+        ) & outer(
+          final_sites,
+          final_sites,
+          FUN = "=="
+        )
+
+        final_title <- paste0(
+          "Species-wide kinship reference; displayed only within ",
+          "species × site (final)"
+        )
+      } else {
+        final_mask <- outer(
+          final_species,
+          final_species,
+          FUN = "=="
+        )
+
+        final_title <- "Kinship within species across all sites (final)"
+      }
+
+      dimnames(final_mask) <- list(
+        current_samples,
+        current_samples
+      )
+
+      final_plot <- write_loop_kinship_heatmap(
+        kinship_matrix = final_matrix,
+        comparison_mask = final_mask,
+        species_values = final_species,
+        site_values = final_sites,
+        scope_name = paste0(clone_scope, "_final"),
+        title_text = final_title
+      )
+
+      kinship_plot_files <<- c(
+        kinship_plot_files,
+        final_plot
+      )
+    }
+
+    # Delete the temporary cache when matrices were not requested.
+    if (!isTRUE(save_kinship_matrices) &&
+        file.exists(final_candidate_cache_file)) {
+      unlink(final_candidate_cache_file)
+    }
+
+    invisible(NULL)
+  }
+
+  # ============================================================
   # Identify clone components and keep the least-missing sample
   # ============================================================
   filter_clones_once <- function(dms_obj, round_number, stage = "main") {
@@ -684,126 +1039,10 @@ run_dart_cleaning_loop <- function(
     kin <- kin_result$decision
     kin_reference <- kin_result$species_reference
 
-    # Save and visualise the exact matrices before any samples are removed.
-    # Matrices use fast RDS serialisation; plots use low-resolution raster PNG.
-    stage_suffix <- if (identical(stage, "main")) {
-      ""
-    } else {
-      paste0("_", stage)
-    }
-
-    scope_stub <- paste0(
-      clone_scope,
-      "_round",
-      round_number,
-      stage_suffix
-    )
-
-    if (isTRUE(save_kinship_matrices)) {
-      # Exact matrix used for clone decisions. For clone_scope = "site",
-      # different-site and different-species pairs are represented by zero.
-      kinship_file <- file.path(
-        kinship_dir,
-        paste0("kinship_", scope_stub, ".rds")
-      )
-
-      # Uncompressed RDS is much faster than CSV, preserves numeric precision,
-      # dimensions and sample-name dimnames, and requires no extra package.
-      saveRDS(
-        kin,
-        file = kinship_file,
-        compress = compress_kinship_matrices
-      )
-      kinship_files <<- c(kinship_files, kinship_file)
-      message("Saved kinship matrix: ", kinship_file)
-
-      # Under site-level clone removal, also save the unmasked species-wide
-      # reference matrix used to obtain the within-site kinship estimates.
-      if (clone_scope == "site" &&
-          isTRUE(save_reference_kinship_matrices)) {
-        reference_file <- file.path(
-          kinship_dir,
-          paste0(
-            "kinship_species_reference_for_site_round",
-            round_number,
-            stage_suffix,
-            ".rds"
-          )
-        )
-
-        saveRDS(
-          kin_reference,
-          file = reference_file,
-          compress = compress_kinship_matrices
-        )
-        kinship_files <<- c(kinship_files, reference_file)
-        message("Saved species-reference kinship matrix: ", reference_file)
-      }
-    }
-
-    if (isTRUE(write_kinship_heatmaps)) {
-      if (clone_scope == "site") {
-        decision_title <- paste0(
-          "Species-wide kinship reference; displayed only within species × site",
-          " (round ",
-          round_number,
-          if (identical(stage, "main")) "" else paste0(", ", stage),
-          ")"
-        )
-      } else {
-        decision_title <- paste0(
-          "Kinship within species across all sites",
-          " (round ",
-          round_number,
-          if (identical(stage, "main")) "" else paste0(", ", stage),
-          ")"
-        )
-      }
-
-      decision_plot <- write_loop_kinship_heatmap(
-        kinship_matrix = kin,
-        comparison_mask = kin_result$comparison_mask,
-        species_values = kin_result$species,
-        site_values = kin_result$site,
-        scope_name = scope_stub,
-        title_text = decision_title
-      )
-      kinship_plot_files <<- c(kinship_plot_files, decision_plot)
-
-      if (clone_scope == "site" &&
-          isTRUE(save_reference_kinship_matrices)) {
-        species_reference_mask <- outer(
-          kin_result$species,
-          kin_result$species,
-          FUN = "=="
-        )
-        dimnames(species_reference_mask) <- dimnames(kin_reference)
-
-        reference_scope_stub <- paste0(
-          "species_reference_for_site_round",
-          round_number,
-          stage_suffix
-        )
-
-        reference_title <- paste0(
-          "Kinship within species across all sites",
-          " (reference for site-level clone removal; round ",
-          round_number,
-          if (identical(stage, "main")) "" else paste0(", ", stage),
-          ")"
-        )
-
-        reference_plot <- write_loop_kinship_heatmap(
-          kinship_matrix = kin_reference,
-          comparison_mask = species_reference_mask,
-          species_values = kin_result$species,
-          site_values = kin_result$site,
-          scope_name = reference_scope_stub,
-          title_text = reference_title
-        )
-        kinship_plot_files <<- c(kinship_plot_files, reference_plot)
-      }
-    }
+    # Retain only the first clone-decision matrix and heatmap here.
+    # The final matrix is captured after a zero-removal clone check and its
+    # heatmap is written once after the loop has converged.
+    save_initial_kinship_outputs(kin_result)
 
     # Build an edge list directly from clone-like pairs. This avoids creating
     # an additional dense adjacency matrix and is much lighter for large data.
@@ -991,8 +1230,18 @@ run_dart_cleaning_loop <- function(
       )
     }
 
+    # A zero-removal check is a potential final state. Save it under stable
+    # final filenames; later equivalent checks are skipped, and changed
+    # candidates overwrite the same files rather than creating duplicates.
+    if (removed_n == 0L) {
+      update_final_kinship_candidate(
+        kin_result = kin_result,
+        dms_obj = dms_obj
+      )
+    }
+
     # Do not retain the dense kinship matrix in memory after this check.
-    # When requested, it has already been written to RDS and visualised above.
+    # Initial/final output helpers have already cached any required matrix.
     list(
       dms = filtered_obj,
       removed = as.integer(removed_n),
@@ -1399,6 +1648,10 @@ run_dart_cleaning_loop <- function(
   dms$meta$analyses[, site_col_name] <-
     orig_site_lookup$site_original[site_match]
 
+  # Write one final heatmap and ensure the final matrix files correspond
+  # exactly to the converged dms object.
+  finalise_kinship_outputs(dms)
+
   log_df <- if (length(log_rows) > 0L) {
     do.call(rbind, log_rows)
   } else {
@@ -1433,8 +1686,15 @@ run_dart_cleaning_loop <- function(
       kinship_png_res = kinship_png_res,
       matrix_format = "rds",
       matrix_compression = compress_kinship_matrices,
+      matrix_output_mode = "initial_final_only",
       heatmap_format = "png",
       heatmap_rasterised = TRUE,
+      heatmap_output_mode = "initial_final_only",
+      final_species_reference_saved = (
+        clone_scope == "site" &&
+          isTRUE(save_kinship_matrices) &&
+          isTRUE(save_reference_kinship_matrices)
+      ),
       kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL,
       kinship_plot_directory = if (isTRUE(write_kinship_heatmaps)) kinship_plots_dir else NULL
     )
