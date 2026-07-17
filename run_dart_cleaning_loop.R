@@ -27,7 +27,10 @@ run_dart_cleaning_loop <- function(
     save_reference_kinship_matrices = TRUE,
     write_kinship_heatmaps = TRUE,
     kinship_show_names_max_n = 250,
-    compress_kinship_matrices = FALSE # retained for backwards compatibility; CSV is now used
+    kinship_png_width_px = 1600,
+    kinship_png_height_px = 1200,
+    kinship_png_res = 96,
+    compress_kinship_matrices = FALSE
 ) {
 
   # ============================================================
@@ -60,6 +63,31 @@ run_dart_cleaning_loop <- function(
   )
   message("Intermediate QC reports: ", write_intermediate_qc)
 
+  if (!is.numeric(kinship_png_width_px) ||
+      length(kinship_png_width_px) != 1L ||
+      !is.finite(kinship_png_width_px) ||
+      kinship_png_width_px < 400) {
+    stop("kinship_png_width_px must be a single finite value >= 400.", call. = FALSE)
+  }
+
+  if (!is.numeric(kinship_png_height_px) ||
+      length(kinship_png_height_px) != 1L ||
+      !is.finite(kinship_png_height_px) ||
+      kinship_png_height_px < 400) {
+    stop("kinship_png_height_px must be a single finite value >= 400.", call. = FALSE)
+  }
+
+  if (!is.numeric(kinship_png_res) ||
+      length(kinship_png_res) != 1L ||
+      !is.finite(kinship_png_res) ||
+      kinship_png_res <= 0) {
+    stop("kinship_png_res must be a single positive finite value.", call. = FALSE)
+  }
+
+  kinship_png_width_px <- as.integer(round(kinship_png_width_px))
+  kinship_png_height_px <- as.integer(round(kinship_png_height_px))
+  kinship_png_res <- as.integer(round(kinship_png_res))
+
   # ============================================================
   # Preserve original site names for the final object
   # ============================================================
@@ -89,7 +117,7 @@ run_dart_cleaning_loop <- function(
   plots_dir          <- file.path(output_dir, "plots")
   tables_dir         <- file.path(output_dir, "tables")
   rfiles_dir         <- file.path(output_dir, "r_files")
-  kinship_dir        <- file.path(tables_dir, "kinship_matrices")
+  kinship_dir        <- file.path(rfiles_dir, "kinship_matrices")
   kinship_plots_dir  <- file.path(plots_dir, "kinship_matrices")
 
   output_paths <- c(plots_dir, tables_dir, rfiles_dir)
@@ -586,6 +614,14 @@ run_dart_cleaning_loop <- function(
       bottom_annotation = bottom_annotation,
       name = "PLINK kinship",
       column_title = title_text,
+
+      # Rasterising the matrix body is substantially faster for dense
+      # kinship matrices and avoids drawing every cell as a vector object.
+      use_raster = TRUE,
+      raster_device = "png",
+      raster_quality = 1,
+      raster_by_magick = FALSE,
+
       cluster_rows = FALSE,
       cluster_columns = FALSE,
       show_row_names = show_sample_names,
@@ -596,18 +632,20 @@ run_dart_cleaning_loop <- function(
       border_gp = grid::gpar(col = "black", lty = 1)
     )
 
-    heatmap_width <- min(max(12, n_samples * 0.06 + 7), 60)
-    heatmap_height <- min(max(10, n_samples * 0.06 + 5), 60)
-
     heatmap_file <- file.path(
       kinship_plots_dir,
-      paste0("PLINK_kin_heatmap_", scope_name, ".pdf")
+      paste0("PLINK_kin_heatmap_", scope_name, ".png")
     )
 
-    grDevices::pdf(
-      heatmap_file,
-      width = heatmap_width,
-      height = heatmap_height
+    # Fixed pixel dimensions and low resolution keep diagnostic plots fast
+    # and prevent very large files for datasets with many samples.
+    grDevices::png(
+      filename = heatmap_file,
+      width = kinship_png_width_px,
+      height = kinship_png_height_px,
+      units = "px",
+      res = kinship_png_res,
+      bg = "white"
     )
 
     tryCatch(
@@ -647,6 +685,7 @@ run_dart_cleaning_loop <- function(
     kin_reference <- kin_result$species_reference
 
     # Save and visualise the exact matrices before any samples are removed.
+    # Matrices use fast RDS serialisation; plots use low-resolution raster PNG.
     stage_suffix <- if (identical(stage, "main")) {
       ""
     } else {
@@ -665,14 +704,15 @@ run_dart_cleaning_loop <- function(
       # different-site and different-species pairs are represented by zero.
       kinship_file <- file.path(
         kinship_dir,
-        paste0("kinship_", scope_stub, ".csv")
+        paste0("kinship_", scope_stub, ".rds")
       )
 
-      utils::write.csv(
+      # Uncompressed RDS is much faster than CSV, preserves numeric precision,
+      # dimensions and sample-name dimnames, and requires no extra package.
+      saveRDS(
         kin,
         file = kinship_file,
-        row.names = TRUE,
-        na = ""
+        compress = compress_kinship_matrices
       )
       kinship_files <<- c(kinship_files, kinship_file)
       message("Saved kinship matrix: ", kinship_file)
@@ -687,15 +727,14 @@ run_dart_cleaning_loop <- function(
             "kinship_species_reference_for_site_round",
             round_number,
             stage_suffix,
-            ".csv"
+            ".rds"
           )
         )
 
-        utils::write.csv(
+        saveRDS(
           kin_reference,
           file = reference_file,
-          row.names = TRUE,
-          na = ""
+          compress = compress_kinship_matrices
         )
         kinship_files <<- c(kinship_files, reference_file)
         message("Saved species-reference kinship matrix: ", reference_file)
@@ -953,7 +992,7 @@ run_dart_cleaning_loop <- function(
     }
 
     # Do not retain the dense kinship matrix in memory after this check.
-    # When requested, it has already been written to CSV and visualised above.
+    # When requested, it has already been written to RDS and visualised above.
     list(
       dms = filtered_obj,
       removed = as.integer(removed_n),
@@ -1389,8 +1428,13 @@ run_dart_cleaning_loop <- function(
       save_reference_kinship_matrices = save_reference_kinship_matrices,
       write_kinship_heatmaps = write_kinship_heatmaps,
       kinship_show_names_max_n = kinship_show_names_max_n,
-      matrix_format = "csv",
-      compress_kinship_matrices = compress_kinship_matrices,
+      kinship_png_width_px = kinship_png_width_px,
+      kinship_png_height_px = kinship_png_height_px,
+      kinship_png_res = kinship_png_res,
+      matrix_format = "rds",
+      matrix_compression = compress_kinship_matrices,
+      heatmap_format = "png",
+      heatmap_rasterised = TRUE,
       kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL,
       kinship_plot_directory = if (isTRUE(write_kinship_heatmaps)) kinship_plots_dir else NULL
     )
