@@ -25,7 +25,9 @@ run_dart_cleaning_loop <- function(
     write_round_summaries = TRUE,
     save_kinship_matrices = TRUE,
     save_reference_kinship_matrices = TRUE,
-    compress_kinship_matrices = FALSE
+    write_kinship_heatmaps = TRUE,
+    kinship_show_names_max_n = 250,
+    compress_kinship_matrices = FALSE # retained for backwards compatibility; CSV is now used
 ) {
 
   # ============================================================
@@ -84,18 +86,37 @@ run_dart_cleaning_loop <- function(
   # ============================================================
   # Output folders
   # ============================================================
-  plots_dir   <- file.path(output_dir, "plots")
-  tables_dir  <- file.path(output_dir, "tables")
-  rfiles_dir  <- file.path(output_dir, "r_files")
-  kinship_dir <- file.path(rfiles_dir, "kinship_matrices")
+  plots_dir          <- file.path(output_dir, "plots")
+  tables_dir         <- file.path(output_dir, "tables")
+  rfiles_dir         <- file.path(output_dir, "r_files")
+  kinship_dir        <- file.path(tables_dir, "kinship_matrices")
+  kinship_plots_dir  <- file.path(plots_dir, "kinship_matrices")
 
   output_paths <- c(plots_dir, tables_dir, rfiles_dir)
   if (isTRUE(save_kinship_matrices)) {
     output_paths <- c(output_paths, kinship_dir)
   }
+  if (isTRUE(write_kinship_heatmaps)) {
+    output_paths <- c(output_paths, kinship_plots_dir)
+  }
 
-  for (p in output_paths) {
+  for (p in unique(output_paths)) {
     if (!dir.exists(p)) dir.create(p, recursive = TRUE)
+  }
+
+  if (isTRUE(write_kinship_heatmaps)) {
+    required_heatmap_packages <- c("ComplexHeatmap", "circlize", "colorspace")
+    missing_heatmap_packages <- required_heatmap_packages[
+      !vapply(required_heatmap_packages, requireNamespace, logical(1), quietly = TRUE)
+    ]
+
+    if (length(missing_heatmap_packages) > 0L) {
+      stop(
+        "Kinship heatmaps require these packages: ",
+        paste(missing_heatmap_packages, collapse = ", "),
+        call. = FALSE
+      )
+    }
   }
 
   # ============================================================
@@ -112,6 +133,7 @@ run_dart_cleaning_loop <- function(
   log_rows <- list()
   log_index <- 0L
   kinship_files <- character()
+  kinship_plot_files <- character()
 
   add_log <- function(round_number, step_name, removed_number) {
     log_index <<- log_index + 1L
@@ -444,6 +466,167 @@ run_dart_cleaning_loop <- function(
   }
 
   # ============================================================
+  # Kinship heatmap helpers
+  # ============================================================
+  complete_annotation_palette <- function(values) {
+    levels_needed <- unique(as.character(values[!is.na(values)]))
+    levels_needed <- levels_needed[trimws(levels_needed) != ""]
+
+    if (length(levels_needed) == 0L) {
+      return(character(0))
+    }
+
+    palette_values <- colorspace::rainbow_hcl(length(levels_needed))
+    names(palette_values) <- levels_needed
+    palette_values
+  }
+
+  write_loop_kinship_heatmap <- function(
+      kinship_matrix,
+      comparison_mask,
+      species_values,
+      site_values,
+      scope_name,
+      title_text
+  ) {
+    sample_names <- rownames(kinship_matrix)
+
+    if (is.null(sample_names)) {
+      stop("The kinship matrix must have sample names as row names.")
+    }
+
+    plot_meta <- data.frame(
+      sample = sample_names,
+      Site = as.character(site_values),
+      Species = as.character(species_values),
+      stringsAsFactors = FALSE
+    )
+
+    if (nrow(plot_meta) != nrow(kinship_matrix)) {
+      stop("Heatmap metadata and kinship matrix have different sample counts.")
+    }
+
+    sample_order <- order(
+      plot_meta$Species,
+      plot_meta$Site,
+      plot_meta$sample,
+      na.last = TRUE
+    )
+
+    ordered_samples <- plot_meta$sample[sample_order]
+    plot_meta <- plot_meta[sample_order, , drop = FALSE]
+
+    plot_matrix <- kinship_matrix[
+      ordered_samples,
+      ordered_samples,
+      drop = FALSE
+    ]
+
+    # Grey cells are pairs excluded from clone comparison under this scope.
+    # White cells are eligible comparisons with kinship near zero.
+    if (!is.null(comparison_mask)) {
+      ordered_mask <- comparison_mask[
+        ordered_samples,
+        ordered_samples,
+        drop = FALSE
+      ]
+      plot_matrix[!ordered_mask] <- NA_real_
+    }
+
+    site_annotation <- plot_meta$Site
+    site_annotation[site_annotation == "no_geo_data"] <- NA_character_
+    species_annotation <- plot_meta$Species
+
+    site_palette <- complete_annotation_palette(site_annotation)
+    species_palette <- complete_annotation_palette(species_annotation)
+
+    bottom_annotation <- ComplexHeatmap::HeatmapAnnotation(
+      Site = site_annotation,
+      Species = species_annotation,
+      col = list(
+        Site = site_palette,
+        Species = species_palette
+      ),
+      na_col = "white",
+      annotation_name_gp = grid::gpar(fontsize = 0),
+      annotation_legend_param = list(
+        Site = list(
+          labels_gp = grid::gpar(fontsize = 6),
+          title_gp = grid::gpar(fontsize = 8),
+          title = site_col_name
+        ),
+        Species = list(
+          labels_gp = grid::gpar(fontsize = 6),
+          title_gp = grid::gpar(fontsize = 8),
+          title = species_col_name
+        )
+      )
+    )
+
+    kinship_colour_function <- circlize::colorRamp2(
+      c(0, 0.2, 0.4),
+      c("white", "red", "black")
+    )
+
+    n_samples <- nrow(plot_matrix)
+    show_sample_names <- n_samples <= kinship_show_names_max_n
+
+    sample_name_fontsize <- if (n_samples <= 75) {
+      6
+    } else if (n_samples <= 150) {
+      4
+    } else {
+      2.5
+    }
+
+    heatmap_object <- ComplexHeatmap::Heatmap(
+      plot_matrix,
+      col = kinship_colour_function,
+      na_col = "grey92",
+      bottom_annotation = bottom_annotation,
+      name = "PLINK kinship",
+      column_title = title_text,
+      cluster_rows = FALSE,
+      cluster_columns = FALSE,
+      show_row_names = show_sample_names,
+      show_column_names = show_sample_names,
+      row_names_gp = grid::gpar(fontsize = sample_name_fontsize),
+      column_names_gp = grid::gpar(fontsize = sample_name_fontsize),
+      row_names_max_width = grid::unit(15, "cm"),
+      border_gp = grid::gpar(col = "black", lty = 1)
+    )
+
+    heatmap_width <- min(max(12, n_samples * 0.06 + 7), 60)
+    heatmap_height <- min(max(10, n_samples * 0.06 + 5), 60)
+
+    heatmap_file <- file.path(
+      kinship_plots_dir,
+      paste0("PLINK_kin_heatmap_", scope_name, ".pdf")
+    )
+
+    grDevices::pdf(
+      heatmap_file,
+      width = heatmap_width,
+      height = heatmap_height
+    )
+
+    tryCatch(
+      {
+        ComplexHeatmap::draw(
+          heatmap_object,
+          merge_legend = TRUE
+        )
+      },
+      finally = {
+        grDevices::dev.off()
+      }
+    )
+
+    message("Saved kinship heatmap: ", heatmap_file)
+    heatmap_file
+  }
+
+  # ============================================================
   # Identify clone components and keep the least-missing sample
   # ============================================================
   filter_clones_once <- function(dms_obj, round_number, stage = "main") {
@@ -463,39 +646,39 @@ run_dart_cleaning_loop <- function(
     kin <- kin_result$decision
     kin_reference <- kin_result$species_reference
 
-    # Save the exact clone-decision matrix before any samples are removed.
-    # For clone_scope = "site", this matrix contains species-wide estimates
-    # but pairs from different sites are masked to zero.
-    if (isTRUE(save_kinship_matrices)) {
-      stage_suffix <- if (identical(stage, "main")) {
-        ""
-      } else {
-        paste0("_", stage)
-      }
+    # Save and visualise the exact matrices before any samples are removed.
+    stage_suffix <- if (identical(stage, "main")) {
+      ""
+    } else {
+      paste0("_", stage)
+    }
 
+    scope_stub <- paste0(
+      clone_scope,
+      "_round",
+      round_number,
+      stage_suffix
+    )
+
+    if (isTRUE(save_kinship_matrices)) {
+      # Exact matrix used for clone decisions. For clone_scope = "site",
+      # different-site and different-species pairs are represented by zero.
       kinship_file <- file.path(
         kinship_dir,
-        paste0(
-          "kinship_",
-          clone_scope,
-          "_round",
-          round_number,
-          stage_suffix,
-          ".rds"
-        )
+        paste0("kinship_", scope_stub, ".csv")
       )
 
-      saveRDS(
+      utils::write.csv(
         kin,
         file = kinship_file,
-        compress = isTRUE(compress_kinship_matrices)
+        row.names = TRUE,
+        na = ""
       )
       kinship_files <<- c(kinship_files, kinship_file)
+      message("Saved kinship matrix: ", kinship_file)
 
-      # The unmasked species-wide reference is useful for checking whether
-      # high-kinship pairs also occur between sites. It is saved only for the
-      # site scope because, under the species scope, it is the same matrix as
-      # the clone-decision matrix.
+      # Under site-level clone removal, also save the unmasked species-wide
+      # reference matrix used to obtain the within-site kinship estimates.
       if (clone_scope == "site" &&
           isTRUE(save_reference_kinship_matrices)) {
         reference_file <- file.path(
@@ -504,16 +687,82 @@ run_dart_cleaning_loop <- function(
             "kinship_species_reference_for_site_round",
             round_number,
             stage_suffix,
-            ".rds"
+            ".csv"
           )
         )
 
-        saveRDS(
+        utils::write.csv(
           kin_reference,
           file = reference_file,
-          compress = isTRUE(compress_kinship_matrices)
+          row.names = TRUE,
+          na = ""
         )
         kinship_files <<- c(kinship_files, reference_file)
+        message("Saved species-reference kinship matrix: ", reference_file)
+      }
+    }
+
+    if (isTRUE(write_kinship_heatmaps)) {
+      if (clone_scope == "site") {
+        decision_title <- paste0(
+          "Species-wide kinship reference; displayed only within species × site",
+          " (round ",
+          round_number,
+          if (identical(stage, "main")) "" else paste0(", ", stage),
+          ")"
+        )
+      } else {
+        decision_title <- paste0(
+          "Kinship within species across all sites",
+          " (round ",
+          round_number,
+          if (identical(stage, "main")) "" else paste0(", ", stage),
+          ")"
+        )
+      }
+
+      decision_plot <- write_loop_kinship_heatmap(
+        kinship_matrix = kin,
+        comparison_mask = kin_result$comparison_mask,
+        species_values = kin_result$species,
+        site_values = kin_result$site,
+        scope_name = scope_stub,
+        title_text = decision_title
+      )
+      kinship_plot_files <<- c(kinship_plot_files, decision_plot)
+
+      if (clone_scope == "site" &&
+          isTRUE(save_reference_kinship_matrices)) {
+        species_reference_mask <- outer(
+          kin_result$species,
+          kin_result$species,
+          FUN = "=="
+        )
+        dimnames(species_reference_mask) <- dimnames(kin_reference)
+
+        reference_scope_stub <- paste0(
+          "species_reference_for_site_round",
+          round_number,
+          stage_suffix
+        )
+
+        reference_title <- paste0(
+          "Kinship within species across all sites",
+          " (reference for site-level clone removal; round ",
+          round_number,
+          if (identical(stage, "main")) "" else paste0(", ", stage),
+          ")"
+        )
+
+        reference_plot <- write_loop_kinship_heatmap(
+          kinship_matrix = kin_reference,
+          comparison_mask = species_reference_mask,
+          species_values = kin_result$species,
+          site_values = kin_result$site,
+          scope_name = reference_scope_stub,
+          title_text = reference_title
+        )
+        kinship_plot_files <<- c(kinship_plot_files, reference_plot)
       }
     }
 
@@ -704,7 +953,7 @@ run_dart_cleaning_loop <- function(
     }
 
     # Do not retain the dense kinship matrix in memory after this check.
-    # When requested, it has already been saved to disk above.
+    # When requested, it has already been written to CSV and visualised above.
     list(
       dms = filtered_obj,
       removed = as.integer(removed_n),
@@ -1130,6 +1379,7 @@ run_dart_cleaning_loop <- function(
     treatment = treatment,
     clone_scope = clone_scope,
     kinship_files = unique(kinship_files),
+    kinship_plot_files = unique(kinship_plot_files),
     optimisation_settings = list(
       write_intermediate_qc = write_intermediate_qc,
       write_clone_tables = write_clone_tables,
@@ -1137,8 +1387,12 @@ run_dart_cleaning_loop <- function(
       write_round_summaries = write_round_summaries,
       save_kinship_matrices = save_kinship_matrices,
       save_reference_kinship_matrices = save_reference_kinship_matrices,
+      write_kinship_heatmaps = write_kinship_heatmaps,
+      kinship_show_names_max_n = kinship_show_names_max_n,
+      matrix_format = "csv",
       compress_kinship_matrices = compress_kinship_matrices,
-      kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL
+      kinship_directory = if (isTRUE(save_kinship_matrices)) kinship_dir else NULL,
+      kinship_plot_directory = if (isTRUE(write_kinship_heatmaps)) kinship_plots_dir else NULL
     )
   )
 }
