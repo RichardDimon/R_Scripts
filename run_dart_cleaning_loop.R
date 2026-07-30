@@ -1938,21 +1938,21 @@ run_dart_cleaning_loop <- function(
     )
   }
 
-  sample_removal_file <- file.path(tables_dir, "sample_removal_log.tsv")
-  locus_filter_file <- file.path(tables_dir, "locus_filtering_log.tsv")
+  sample_removal_file <- file.path(tables_dir, "sample_removal_log.csv")
+  locus_filter_file <- file.path(tables_dir, "locus_filtering_log.csv")
 
   if (isTRUE(write_sample_removal_log)) {
-    write.table(
-      sample_removal_log, file = sample_removal_file, sep = "\t",
-      row.names = FALSE, quote = FALSE, na = ""
+    utils::write.csv(
+      sample_removal_log, file = sample_removal_file,
+      row.names = FALSE, na = ""
     )
     message("Saved sample-removal log: ", sample_removal_file)
   }
 
   if (isTRUE(write_locus_filter_log)) {
-    write.table(
-      locus_filter_log, file = locus_filter_file, sep = "\t",
-      row.names = FALSE, quote = FALSE, na = ""
+    utils::write.csv(
+      locus_filter_log, file = locus_filter_file,
+      row.names = FALSE, na = ""
     )
     message("Saved locus-filtering log: ", locus_filter_file)
   }
