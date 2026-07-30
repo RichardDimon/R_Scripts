@@ -293,6 +293,7 @@ run_dart_cleaning_loop <- function(
       stage = as.character(stage_name),
       min_repro = as.numeric(min_repro),
       locus_miss = as.numeric(locus_miss),
+      sample_miss = as.numeric(sample_miss),
       loci_before_quality_filter = loci_before,
       loci_after_quality_filter = loci_after_quality,
       loci_removed_quality_filter = loci_before - loci_after_quality,
@@ -1930,7 +1931,8 @@ run_dart_cleaning_loop <- function(
   } else {
     data.frame(
       round = integer(), stage = character(), min_repro = numeric(),
-      locus_miss = numeric(), loci_before_quality_filter = integer(),
+      locus_miss = numeric(), sample_miss = numeric(),
+      loci_before_quality_filter = integer(),
       loci_after_quality_filter = integer(), loci_removed_quality_filter = integer(),
       loci_after_one_snp_per_locus = integer(),
       loci_removed_one_snp_selection = integer(),
